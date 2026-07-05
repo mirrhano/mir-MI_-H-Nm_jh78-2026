@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>맨홀 현황조사 — 현장</title>
+<title>하수관로 조사 정보 입력 프로그램 — 미르이엔지</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -105,6 +105,11 @@ input.small{font-size:16px;}
 .chkCell.bad{outline:3px solid #DC2626;}
 .chkCell.bad::after{content:"불량!";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#FCA5A5;font-weight:bold;background:rgba(0,0,0,.45);font-size:15px;}
 #chkSum{padding:12px 14px;font-size:14px;font-weight:bold;background:#111827;color:#E5E7EB;border-radius:10px;margin:10px;line-height:1.6;white-space:pre-line;}
+/* 조사유형·주요 관종 강조 */
+#g_stype button{font-size:17px;padding:15px 0;font-weight:800;}
+.bigsel{font-size:17px;font-weight:bold;padding:13px 10px;height:auto;width:100%;
+  border:1.5px solid #D1D5DB;border-radius:10px;background:#fff;}
+.c2{grid-template-columns:repeat(2,1fr) !important;}
 /* 등록된 현장 목록 */
 .siterow{display:flex;align-items:center;gap:8px;padding:11px 10px;border:1.5px solid #E5E7EB;border-radius:10px;margin-top:6px;background:#fff;}
 .siterow.cur{border-color:#2563EB;background:#EFF6FF;}
@@ -146,91 +151,169 @@ input.small{font-size:16px;}
   <header><span id="formTitle">맨홀 입력</span><span class="sp"></span>
     <button onclick="moveMode()" id="btnMove">위치이동</button>
   </header>
+  <div id="daySum" style="background:#111827;color:#E5E7EB;font-size:12px;font-weight:bold;padding:6px 12px;line-height:1.5"></div>
   <div class="body" id="formBody">
     <div class="card">
-      <div class="row">
-        <div><div class="lbl">관로번호 <span class="req">*</span></div>
+      <div class="lbl" style="font-size:15px">■ 관로 제원</div>
+      <div class="row" style="margin-top:6px">
+        <div><div class="lbl">관로번호 <span class="req">*</span> <span style="color:#6B7280;font-weight:normal">이 관 구간의 번호</span></div>
           <input type="tel" id="f_pipe" oninput="syncUp()" autocomplete="off"></div>
         <div style="flex:0 0 84px"><div class="lbl">&nbsp;</div>
           <button style="width:100%;padding:12px;border:0;border-radius:10px;background:#374151;color:#fff;font-size:16px;font-weight:bold" onclick="incPipe()">＋1</button></div>
       </div>
       <div class="row" style="margin-top:8px">
-        <div><div class="lbl">상류맨홀번호 <span class="req">*</span> <span style="color:#6B7280;font-weight:normal">(=관로번호 자동)</span></div>
-          <input type="tel" id="f_up" autocomplete="off"></div>
-        <div><div class="lbl">하류맨홀번호 <span style="color:#6B7280;font-weight:normal">(물이 흘러가는 다음 맨홀)</span></div>
-          <input type="tel" id="f_down" autocomplete="off"></div>
+        <div><div class="lbl">배제방식 <span style="color:#6B7280;font-weight:normal">— 흐르는 물 종류</span></div><select id="f_drain" class="bigsel"></select></div>
+        <div><div class="lbl">관종 <span style="color:#6B7280;font-weight:normal">— 관 재질 (PE·PVC·HP가 대부분)</span></div>
+          <select id="f_ptype" class="bigsel" onchange="onPtypePick(this.value)"></select>
+          <input type="text" id="f_ptypeEtc" class="small" style="margin-top:6px;display:none" placeholder="관종 직접입력 (기타)"></div>
       </div>
+        <div class="lbl" style="margin-top:8px">관경 <span style="color:#6B7280;font-weight:normal">— 관 굵기(mm)</span></div>
+        <select id="f_psizeSel" class="bigsel" onchange="onPsizeSel(this.value)"></select>
+        <input type="tel" id="f_psize" class="small" style="margin-top:6px;display:none" placeholder="직접입력(mm)">
+        <div id="boxWH" style="display:none;gap:6px;margin-top:6px">
+          <input type="tel" id="f_psW" inputmode="decimal" class="small" style="flex:1" placeholder="가로 (예: 1.5)">
+          <span style="align-self:center;font-weight:800;font-size:18px">×</span>
+          <input type="tel" id="f_psH" inputmode="decimal" class="small" style="flex:1" placeholder="세로 (예: 1.0)">
+        </div>
+      <div class="row" style="margin-top:8px">
+        <div><div class="lbl">실연장(m) <span style="color:#6B7280;font-weight:normal">— 실제 연장 (상류맨홀 덮개중심 ↔ 하류맨홀 덮개중심)</span></div>
+          <input type="text" id="f_plen" inputmode="decimal" class="small" placeholder="예: 48.5" oninput="updPipeSum()"></div>
+        <div><div class="lbl">도면연장(m) <span style="color:#6B7280;font-weight:normal">— 도면·대장에 적힌 길이 (모르면 0)</span></div>
+          <input type="text" id="f_mlen" inputmode="decimal" class="small" placeholder="예: 50.0" oninput="updPipeSum()"></div>
+      </div>
+      <div id="pipeSum" style="margin-top:8px;background:#111827;color:#E5E7EB;border-radius:10px;padding:10px 12px;font-size:13.5px;font-weight:bold;line-height:1.6"></div>
     </div>
 
     <div class="card">
-      <div class="lbl">맨홀 상태 <span class="req">*</span></div>
+      <div class="lbl">조사 유형 <span class="req">*</span></div>
+      <div style="font-size:12px;color:#6B7280;margin:2px 0 6px">CCTV 조사=카메라를 관 속에 넣어 촬영 / 현황조사=맨홀만 열어 확인(카메라 안 넣음)</div>
+      <div class="btns c2" id="g_stype"></div>
+      <div id="svyWhyWrap" style="display:none;margin-top:8px">
+        <div class="lbl">왜 CCTV 없이 현황조사만 했는지 <span class="req">*</span></div>
+        <div class="btns c3" id="g_svyWhy"></div>
+        <input type="text" id="f_svyEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 사유 직접입력">
+      </div>
+    </div>
+    <div class="card">
+      <div class="lbl" style="font-size:15px">■ 맨홀 번호 <span style="color:#6B7280;font-weight:normal;font-size:13px">— 상류=물이 나오는 쪽(지금 서 있는 맨홀) / 하류=물이 흘러가는 쪽</span></div>
+      <div class="row" style="margin-top:8px">
+        <div><div class="lbl">상류맨홀번호 <span class="req">*</span>
+          <label style="float:right;font-weight:normal;color:#374151;font-size:13px">
+            <input type="checkbox" id="c_sync" checked onchange="syncToggle()"> 관로번호와 동일</label></div>
+          <input type="tel" id="f_up" autocomplete="off"></div>
+        <div><div class="lbl">하류 구분 <span style="color:#6B7280;font-weight:normal">— 물이 가는 곳이 맨홀이면 [맨홀]</span></div>
+          <div style="font-size:11.5px;color:#6B7280;margin:1px 0 4px">BOX접합=암거(사각수로)에 붙음 / 관접합=관끼리 바로 연결 / 처리장·펌프장=시설로 들어감 / 조사대상외=우리 조사구역 아님</div>
+          <div class="btns c4" id="g_downType" style="margin-bottom:6px"></div>
+          <div style="display:flex;gap:6px">
+            <input type="tel" id="f_down" autocomplete="off" placeholder="하류맨홀번호" list="downOpts" style="flex:1">
+            <button type="button" onclick="pickDownStart()" style="border:0;border-radius:10px;background:#0E7490;color:#fff;padding:0 12px;font-weight:bold;font-size:13px;white-space:nowrap">지도선택</button>
+          </div><datalist id="downOpts"></datalist></div>
+      </div>
+    </div>
+
+
+    <div class="card">
+      <div class="lbl">사진 <span class="req">*</span> <span style="color:#6B7280;font-weight:normal">— A·B는 무조건 / 열었으면 C / 이상 있으면 D~F</span></div>
+      <div style="font-size:16px;color:#111827;margin:2px 0 6px;line-height:1.5;background:#FEF3C7;border:1.5px solid #F59E0B;border-radius:8px;padding:10px 12px;font-weight:800;text-align:center">
+        📷 물이 나가는(하류) 방향이 사진 <span style="color:#DC2626">6시 방향</span>에 오게!</div>
+      <div style="color:#DC2626;font-weight:800;font-size:12.5px;margin:2px 0 4px">
+        ※ CCTV를 역주행만 하는 관로도, 상류맨홀을 열 수 있으면 맨홀 현황조사(사진 A·B·C+정보)는 반드시 합니다 — 맨홀조사 보고서에 들어갑니다!</div>
+      <div id="photoSlots"></div>
+      <input type="file" id="f_photo" accept="image/*" capture="environment" style="display:none" onchange="slotCapture(this)">
+    </div>
+
+    <div class="card">
+      <div class="lbl">상류맨홀 상태 <span class="req">*</span> <span style="color:#6B7280;font-weight:normal">— 지금 조사하는 이 맨홀(상류맨홀)을 열어서 조사했는지</span></div>
+      <div style="font-size:12px;color:#6B7280;margin:2px 0 6px">조사=열어서 확인 / 미개폐=사정상 안 엶(사유) / 개폐불가=고착 등으로 못 엶 / 맨홀묻힘=포장·토사에 묻힘 / 확인불가=맨홀 못 찾음</div>
       <div class="btns c5" id="g_state"></div>
       <div id="whyWrap" style="margin-top:8px;display:none">
         <div class="lbl">미개폐 사유 (왜 열지 않았는지)</div>
         <div class="btns c5" id="g_stateWhy"></div>
+        <input type="text" id="f_stateWhyEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 — 미개폐 사유 직접입력">
       </div>
       <div id="depthWrap" style="margin-top:8px">
-        <div class="lbl">맨홀깊이 (m)</div>
+        <div class="lbl">맨홀깊이(m) <span style="color:#6B7280;font-weight:normal">— 뚜껑 위에서 바닥까지</span></div>
         <input type="text" id="f_depth" inputmode="decimal" class="small" placeholder="예: 2.35">
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="cctvCard">
       <div class="lbl">CCTV 조사 — 이 관로(이 맨홀 → 하류)</div>
-      <div class="btns c3" id="g_cctv"></div>
-      <div id="cctvWhyWrap" style="margin-top:8px;display:none">
-        <div class="lbl">미주행 사유 (nPASS 표준)</div>
-        <div class="btns c3" id="g_cctvWhy"></div>
-        <input type="text" id="f_cctvWhyEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 사유 직접입력">
+      <div style="font-size:12px;color:#6B7280;margin:2px 0 6px">완주=한 번에 끝까지 감 / 양쪽조사(정+역)=한 관로를 정주행+역주행 두 번으로 조사 / 상류불가·역주행=상류로 못 들어가 하류에서만 조사 / 조사불가=CCTV 조사 자체를 못 함(사유 기록)</div>
+      <div class="btns c5" id="g_cctvMode"></div>
+      <div id="cctvBody" style="display:none;margin-top:8px">
+        <div class="row">
+          <div id="wrapF"><div class="lbl" id="lblF">정주행 연장(m)</div>
+            <input type="text" id="f_cctvF" inputmode="decimal" class="small" placeholder="예: 25.5" oninput="updPipeSum()"></div>
+          <div id="wrapR"><div class="lbl">역주행 촬영 길이(m) <span style="color:#6B7280;font-weight:normal">하류→상류</span></div>
+            <input type="text" id="f_cctvR" inputmode="decimal" class="small" placeholder="예: 23.0" oninput="updPipeSum()"></div>
+        </div>
+        <div id="wrapFw" style="margin-top:8px">
+          <div class="lbl" id="lblFw">중단 사유 (nPASS 표준)</div>
+          <div class="btns c3" id="g_cctvFw"></div>
+          <input type="text" id="f_cctvFwEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 사유 직접입력">
+        </div>
+        <div id="wrapRw" style="margin-top:8px">
+          <div class="lbl">역주행을 못 했거나 중간에 멈춘 이유 <span style="color:#6B7280;font-weight:normal">— 끝까지 갔으면 비워두세요</span></div>
+          <div class="btns c3" id="g_cctvRw"></div>
+          <input type="text" id="f_cctvRwEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 — 역주행 사유 직접입력">
+        </div>
+        <div style="margin-top:8px">
+          <div class="lbl">관로 특이사항 <span style="color:#6B7280;font-weight:normal">— 1년 안에 문제될 수 있는 긴급·중요사항, 조사하며 하고 싶은 말 (선택)</span></div>
+          <input type="text" id="f_cctvNote" class="small" placeholder="예: 붕괴(동공 발견 지점), 악취 심함 등">
+        </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="lbl">대장 구분 (대장도와 다를 때만 변경)</div>
-      <div class="btns c3" id="g_ledger"></div>
-      <div id="ledgerHint" style="display:none;margin-top:6px;font-size:12.5px;font-weight:bold;color:#B45309;line-height:1.5"></div>
-    </div>
 
-    <div class="fold" id="fold_note">
-      <div class="fold-head" onclick="toggleFold('fold_note')">
-        <span class="ft">특이사항</span><span class="fs" id="sum_note">없음</span><span class="chev">▼</span>
-      </div>
-      <div class="fold-body">
-        <input type="text" id="f_note" class="small" placeholder="버튼으로 입력 (항목 → 크기)">
-        <div class="btns c3 notebtns" id="g_noteItem" style="margin-top:6px"></div>
-        <div class="btns c5 notebtns" id="g_noteSize" style="margin-top:6px"></div>
-      </div>
-    </div>
 
     <div class="fold" id="fold_detail">
       <div class="fold-head" onclick="toggleFold('fold_detail')">
-        <span class="ft">상세</span><span class="fs" id="sum_detail"></span><span class="chev">▼</span>
+        <span class="ft">상세 — 상류맨홀 세부정보</span><span class="fs" id="sum_detail"></span><span class="chev">▼</span>
       </div>
       <div class="fold-body" id="detailCard">
-        <div class="lbl">배수방식</div><div class="btns c3" id="g_drain"></div>
-        <div class="lbl" style="margin-top:8px">덮개종류</div><div class="btns c3" id="g_cover"></div>
-        <div class="row" style="margin-top:8px">
-          <div><div class="lbl">맨홀종류</div><input type="text" id="f_mhtype" class="small" value="NM"></div>
-          <div><div class="lbl">맨홀크기</div><input type="text" id="f_mhsize" class="small" value="1호" readonly onclick="cycleInput(this,MH_SIZES)"></div>
+        <div class="lbl">맨홀 점검결과 <span class="req">*</span> <span style="color:#6B7280;font-weight:normal">— 이중확인: 하나를 눌러야 저장됩니다</span></div>
+        <div class="btns c3" id="g_mhchk"></div>
+        <input type="text" id="f_mhchkEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 — 상세사유 필수">
+        <div class="lbl" style="margin-top:10px">특이사항 — 파손·균열 등 이상 <span class="fs" id="sum_note" style="float:right">없음</span></div>
+        <div style="display:flex;gap:6px">
+          <input type="text" id="f_note" class="small" style="flex:1;background:#F3F4F6" readonly placeholder="여기엔 입력된 결과만 표시 — 아래 버튼/기타로 입력">
+          <button type="button" onclick="noteClear()" style="border:0;border-radius:10px;background:#9CA3AF;color:#fff;padding:0 12px;font-weight:bold">지움</button>
         </div>
-        <div class="lbl" style="margin-top:8px">관종</div><div class="btns" id="g_ptype"></div>
-        <div class="lbl" style="margin-top:8px">관경(mm)</div><div class="btns c5" id="g_psize"></div>
-        <input type="tel" id="f_psize" class="small" style="margin-top:6px" placeholder="직접입력">
-        <div class="row" style="margin-top:8px">
-          <div><div class="lbl">인버트</div><div class="btns c3" id="g_invert"></div></div>
-          <div><div class="lbl">사다리</div><div class="btns c3" id="g_ladder"></div></div>
-          <div><div class="lbl">낙하방지</div><div class="btns c3" id="g_fall"></div></div>
+        <div class="btns c3 notebtns" id="g_noteItem" style="margin-top:6px"></div>
+        <div class="btns c5 notebtns" id="g_noteSize" style="margin-top:6px"></div>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <input type="text" id="f_noteEtc" class="small" style="flex:1" placeholder="기타 — 직접 입력 후 [추가]">
+          <button type="button" onclick="noteEtcAdd()" style="border:0;border-radius:10px;background:#374151;color:#fff;padding:0 16px;font-weight:bold">추가</button>
         </div>
-        <div class="lbl" style="margin-top:8px">주소 (선택)</div>
+        <div style="height:6px"></div>
+        <div class="lbl">덮개종류 <span style="color:#6B7280;font-weight:normal">— 뚜껑 재질 (CI=주철·쇠 / CS=철판 / AC=시멘트)</span></div><div class="btns c4" id="g_cover"></div>
+        <input type="text" id="f_coverEtc" class="small" style="margin-top:6px;display:none" placeholder="덮개 재질 직접입력 (기타)">
+        <div class="row" style="margin-top:8px">
+          <div><div class="lbl">맨홀종류 <span style="color:#6B7280;font-weight:normal">— NM 표준 / SM 소형 / AR 박스암거 / OC 기타</span></div>
+          <select id="f_mhtype" class="bigsel" onchange="onMhTypePick(this.value)"></select>
+          <input type="text" id="f_mhtypeEtc" class="small" style="margin-top:6px;display:none" placeholder="기타맨홀 — 종류 직접입력"></div>
+          <div><div class="lbl">맨홀크기</div><select id="f_mhsize" class="bigsel"></select></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div><div class="lbl">인버트 <span style="color:#6B7280;font-weight:normal">바닥 물길</span></div><div class="btns c3" id="g_invert"></div></div>
+          <div><div class="lbl">사다리 <span style="color:#6B7280;font-weight:normal">발판</span></div><div class="btns c3" id="g_ladder"></div></div>
+          <div><div class="lbl">낙하방지 <span style="color:#6B7280;font-weight:normal">추락막이</span></div><div class="btns c3" id="g_fall"></div></div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div><div class="lbl">덮개 볼트형식</div><div class="btns c3" id="g_bolt"></div>
+            <input type="text" id="f_boltEtc" class="small" style="margin-top:6px;display:none" placeholder="볼트형식 직접입력"></div>
+          <div><div class="lbl">볼트구멍 불량 <span style="color:#6B7280;font-weight:normal">— 유입수 우려, 불량 개수</span></div>
+            <input type="tel" id="f_boltBad" class="small" placeholder="불량 없으면 비움"></div>
+        </div>
+        <button type="button" id="btnPress" onclick="togglePress()"
+          style="width:100%;margin-top:8px;border:2px solid #D1D5DB;border-radius:10px;background:#fff;color:#6B7280;padding:12px;font-size:15px;font-weight:800">
+          맨홀 내부에 압송관로가 꽂혀 있으면 이 버튼을 누르세요</button>
+        <div class="lbl" style="margin-top:8px">주소 <span style="color:#6B7280;font-weight:normal">— 자동입력됨, 틀리면 수정</span></div>
         <input type="text" id="f_addr" class="small" placeholder="예: 신도산단길 43">
       </div>
     </div>
 
-    <div class="card">
-      <div class="lbl">사진 <span class="req">*</span> A배경·B덮개는 반드시 촬영 <span style="color:#6B7280;font-weight:normal">— 덮개를 열었으면 C내부, 이상 있으면 D~F</span></div>
-      <div id="photoSlots"></div>
-      <input type="file" id="f_photo" accept="image/*" capture="environment" style="display:none" onchange="slotCapture(this)">
-    </div>
     <div style="height:20px"></div>
   </div>
   <div class="save-bar">
@@ -245,15 +328,16 @@ input.small{font-size:16px;}
   <header><span id="refTitle">참고사진</span><span class="sp"></span></header>
   <div class="body">
     <div class="card">
-      <div class="lbl">종류 <span class="req">*</span></div>
+      <div class="lbl">종류 <span class="req">*</span> <span style="color:#6B7280;font-weight:normal">— 토구=물이 하천으로 빠지는 출구 / 현장=공사장 전경</span></div>
       <div class="btns c5" id="g_refKind"></div>
+      <input type="text" id="f_refKindEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 — 시설 이름 직접입력">
     </div>
     <div class="card">
       <div class="lbl">메모 (선택)</div>
       <input type="text" id="f_refMemo" class="small" placeholder="예: 유입 게이트 부근">
     </div>
     <div class="card">
-      <div class="lbl">사진 <span class="req">*</span> 최소 1장 ~ 최대 6장</div>
+      <div class="lbl">사진 <span class="req">*</span> 원경·근경 <b>최소 2장</b> ~ 최대 6장 (맨홀과 동일 규칙)</div>
       <div id="refPhotoRow" style="display:flex;gap:8px;flex-wrap:wrap">
         <button id="btnRefShot" style="width:84px;height:84px;border:2px dashed #9CA3AF;border-radius:10px;background:#fff;font-size:26px"
                 onclick="document.getElementById('f_refPhoto').click()">📷</button>
@@ -293,7 +377,7 @@ input.small{font-size:16px;}
     <div class="card">
       <div class="lbl">VWorld 인증키 <span style="color:#6B7280;font-weight:normal">(회사에서 따로 알려준 경우에만 입력 — 평소 비워두세요)</span></div>
       <input type="text" id="s_vkey" class="small" placeholder="발급받은 키 붙여넣기">
-      <div class="lbl" style="margin-top:8px">라벨 겹침(하이브리드)</div>
+      <div class="lbl" style="margin-top:8px">위성지도 위 지명·도로명 표시 <span style="color:#6B7280;font-weight:normal">(하이브리드)</span></div>
       <div class="btns c3" id="g_hybrid"></div>
     </div>
     <div class="card">
@@ -335,6 +419,19 @@ input.small{font-size:16px;}
   </div>
 </div>
 
+<div class="sheet" id="finalSheet">
+  <header>마감 점검 — 내보내기 전 확인<span class="sp"></span><button onclick="closeSheet('finalSheet')">닫기</button></header>
+  <div class="body" id="finalBody"></div>
+  <div class="save-bar">
+    <button style="background:#6B7280;flex:1" onclick="closeSheet('finalSheet')">돌아가서 수정</button>
+    <button style="background:#B45309;flex:1.4" onclick="finalProceed()">확인했음 — 그래도 내보내기</button>
+  </div>
+</div>
+
+<div id="pickBar" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:3500;background:rgba(17,24,39,.97);padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom))">
+  <button onclick="pickDownEnd(null)" style="width:100%;border:0;border-radius:10px;padding:15px;font-size:16px;font-weight:bold;background:#DC2626;color:#fff">✕ 하류 지도선택 취소 — 입력화면으로</button>
+</div>
+
 <div id="shareBar" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:3500;background:rgba(17,24,39,.97);padding:12px;padding-bottom:calc(12px + env(safe-area-inset-bottom));flex-direction:column;gap:8px">
   <div id="shareName" style="color:#FDE68A;font-size:13px;font-weight:bold;text-align:center;word-break:break-all"></div>
   <div style="display:flex;gap:8px">
@@ -352,6 +449,28 @@ input.small{font-size:16px;}
   </div>
 </div>
 
+<div id="lockPane" style="position:fixed;inset:0;z-index:9000;background:#111827;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px">
+  <div style="color:#fff;font-size:19px;font-weight:800;text-align:center">하수관로 조사 정보 입력<br>미르이엔지 <span id="verTag" style="font-size:13px;color:#9CA3AF"></span></div>
+  <div style="color:#9CA3AF;font-size:13.5px">실행 암호를 입력하세요 (사무실에서 안내)</div>
+  <input type="tel" id="lockPw" style="width:240px;padding:14px;border-radius:12px;border:0;font-size:20px;text-align:center;letter-spacing:2px" placeholder="암호 입력">
+  <button onclick="lockTry()" style="width:240px;border:0;border-radius:12px;background:#2563EB;color:#fff;padding:14px;font-size:17px;font-weight:800">확인</button>
+</div>
+<div id="startPane" style="display:none;position:fixed;inset:0;z-index:2600;background:rgba(17,24,39,.97);flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:26px;text-align:center">
+  <div id="spStep1">
+    <div style="font-size:34px">🤝</div>
+    <div style="color:#FDE68A;font-size:20px;font-weight:800;line-height:1.6;margin-top:8px">
+      오늘 하루도 안전사고 없이,<br>민원 발생 없이!</div>
+    <div style="color:#E5E7EB;font-size:15.5px;line-height:1.7;margin-top:10px">
+      불명수·유입수 등 하수관로에 어떤 문제가 있는지<br><b>원인을 찾아주십시오.</b></div>
+    <button onclick="startStep2()" style="margin-top:18px;width:240px;border:0;border-radius:12px;background:#2563EB;color:#fff;padding:14px;font-size:17px;font-weight:800">확인</button>
+  </div>
+  <div id="spStep2" style="display:none">
+    <div style="color:#fff;font-size:17px;font-weight:800">오늘 작업 확인</div>
+    <div id="spInfo" style="color:#E5E7EB;font-size:15px;line-height:1.8;margin-top:10px"></div>
+    <div id="spBtns" style="display:flex;flex-direction:column;gap:8px;margin-top:16px"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -362,19 +481,22 @@ var STATE_WHY={
   "미개폐":["주정차","적재물","차량통행","민원","기타"]
 };
 var REF_KINDS=["펌프장","하수처리장","토구","현장","기타"];
-var CCTV_OPTS=["미실시","주행","미주행"];
-var CCTV_WHY=["토사퇴적","관파손 및 크랙","타관통과","연결관돌출","관침하","곡관로",
-              "관구배","연결관접합부","이음부","임시장애물","영구장애물","물수위","기타"];
-var LEDGER_OPTS=["대장","추가맨홀","멸실"];
-var LEDGER_HINT={
-  "추가맨홀":"대장에 없는 새 맨홀 — 임의번호를 부여하세요 (예: 옆맨홀번호-1). 사진 A·B 필수",
-  "멸실":"대장에는 있으나 실제 없는 맨홀 — 그 지점 사진 A·B를 찍고 저장. 도면에 X로 표시되고 관로선은 그려지지 않습니다"
-};
+var APP_VER="v3.6";
+var CCTV_MODES=["미실시","완주","양쪽조사(정+역)","상류불가·역주행","조사불가"];
+var CCTV_WHY_NOGO=["장비 진입불가","차량·주정차","도로 통제불가","수위 높음","안전 위험","민원","기타"];
+var MHCHK=["이상없음","문제점 발견","개폐불가","맨홀묻힘","확인불가","미개폐","기타"];
+var CCTV_WHY_STD=["토사퇴적","관파손 및 크랙","타관통과","연결관돌출","연결관접합부","이음부",
+                  "곡관로","관침하","임시장애물","영구장애물","관변형","폐유부착","기타"];
+var CCTV_WHY_ACC=["개폐불가","맨홀묻힘","미개폐","물수위","확인불가"];
+var DOWN_TYPES=["맨홀","BOX접합","관접합","처리장","펌프장","맨홀묻힘","확인불가","조사대상외"];
+var RW_NOGO=["처리장","펌프장","조사대상외","BOX접합","관접합"];
+
 var DRAINS=["오수","우수","합류"];
-var COVERS=["CI(주철)","CS(철판)","기타"];
-var PTYPES=["PE","HP","PVC","PC","RCB","SP","CSP","GRP"];
-var PSIZES=["150","200","250","300","400","450","600","800"];
-var MH_SIZES=["1호","2호","3호","소형","특1호","특2호","특3호","특4호","특5호","BOX"];
+var COVERS=["CI(주철)","CS(철판)","AC(시멘트)","기타"];
+var PTYPES=["PE","PVC","HP","PC","EP","RCB","BOX","CSP","SP","GRP","기타"];
+var SURVEY_WHY=["CCTV 추후예정","수위높음","접근불가","조사제외","민원","기타"];
+var PSIZES=["150","200","250","300","400","450","500","600","800","1000"];
+var MH_SIZES=["1호","2호","3호","4호","5호","소형","특1호","특2호","특3호","특4호","특5호"];
 var YN=["유","무"];
 var NOTE_ITEMS=["블록 이음부 손상","하수관로 접속부 이상","하수관로 접속부 돌출","뿌리침입","침입수","임시장애물","영구장애물","벽체파손","만관"];
 var NOTE_SIZES=["소","중","대"];
@@ -417,7 +539,21 @@ function loadAll(){
     records=[];
     setTimeout(function(){toast("⚠ 저장 데이터 손상 감지 — 원본은 백업으로 보존했습니다. 사무실에 알려주세요");},800);
   }
-  records.forEach(function(r){if(r.state==="정상")r.state="조사";});   // 구버전 호환
+  records.forEach(function(r){
+    if(r.state==="정상")r.state="조사";                       // 구버전 호환
+    if(r.cctvMode===undefined){                               // CCTV 구버전 → 시나리오
+      if(r.cctv==="주행"){r.cctvMode="완주";r.cctvF=r.cctvF||"";}
+      else if(r.cctv==="미주행"){r.cctvMode="조사불가";r.cctvFw=r.cctvWhy||"";}
+      else r.cctvMode="미실시";
+      r.cctvR=r.cctvR||"";r.cctvRw=r.cctvRw||"";
+    }
+    if(r.cctvMode==="중단→역주행")r.cctvMode="양쪽조사(정+역)";
+    if(r.cctvMode==="역주행 전용")r.cctvMode="상류불가·역주행";
+    if(r.surveyType===undefined){
+      r.surveyType=(r.cctvMode&&r.cctvMode!=="미실시")?"CCTV 조사":"현황조사";
+      r.surveyWhy=r.surveyWhy||"";
+    }
+  });
   try{refs=JSON.parse(localStorage.getItem(nsKey(LS_REF))||"[]");}
   catch(e){
     try{var raw2=localStorage.getItem(nsKey(LS_REF));
@@ -488,6 +624,7 @@ function initMap(){
   baseLayers();
   map.on("moveend",saveView);   // 마지막 화면 위치 기억 → 다음 실행 시 그 자리에서 시작
   map.on("click",function(e){
+    if(pickingDown){pickDownEnd(nearestRecord(e.latlng,24));return;}
     if(crossMode)return;
     var hit=nearestRecord(e.latlng,18);
     if(hit)openForm(hit.id);
@@ -514,8 +651,11 @@ function renderMap(){
   lines.forEach(function(l){map.removeLayer(l);});lines=[];
   var byUp={};
   records.forEach(function(r){if(r.up)byUp[String(r.up)]=r;});
+  var seenUpM={};
   records.forEach(function(r){
     if(!r.lat)return;
+    var dupMark=seenUpM[String(r.up)];
+    seenUpM[String(r.up)]=1;
     var miss=missingReq(r);
     var fill=(r.ledger==="멸실")?"#6B7280":stateColor(r);
     var m=L.circleMarker([r.lat,r.lng],{radius:9,color:(miss?"#DC2626":"#fff"),weight:(miss?3.5:2),fillColor:fill,fillOpacity:(r.ledger==="멸실")?.55:1});
@@ -523,7 +663,7 @@ function renderMap(){
             (r.cctv==="미주행"?" ⛔":(r.cctv==="주행"?" ✔":""))+(miss?" ⚠":"");
     m.bindTooltip(tip,{permanent:labelsOn,direction:"top",offset:[0,-8],className:"mh-label"});
     m.on("click",function(){openForm(r.id);});
-    m.addTo(map);markers[r.id]=m;
+    if(!dupMark){m.addTo(map);markers[r.id]=m;}
     if(r.down&&r.ledger!=="멸실"){
       var d=byUp[String(r.down)];
       if(d&&d.lat){
@@ -551,6 +691,7 @@ function updateStat(byUp){
   var link=0,pend=0,ph=0,miss=0;
   records.forEach(function(r){
     if(r.down){if(byUp[String(r.down)])link++;else pend++;}
+    else if(r.downType&&r.downType!=="맨홀"){link++;}
     ph+=photosCount(r);
     if(missingReq(r))miss++;
   });
@@ -579,12 +720,11 @@ function revGeocode(lat,lng){
       var best=null;
       for(var i=0;i<r.result.length;i++){if(r.result[i].type==="road"){best=r.result[i];break;}}
       best=best||r.result[0];
-      var txt=(best.text||"").trim();
-      var st=best.structure||{};
-      // 시도·시군구는 주소에서 제거
-      if(st.level1)txt=txt.split(st.level1).join("").trim();
-      if(st.level2)txt=txt.split(st.level2).join("").trim();
+      var txt=(best.text||"").trim();   // 풀네임 (시도·시군구 포함)
       txt=txt.replace(/\s+/g," ").trim();
+      var mroad=txt.match(/^(.*?(?:로|길)\s?\d+(?:-\d+)?)(?:\s|,|\()/);
+      if(!mroad)mroad=txt.match(/^(.*?(?:로|길)\s?\d+(?:-\d+)?)$/);
+      if(mroad)txt=mroad[1];   // 번지 뒤 부속문구 제거
       var el=document.getElementById("f_addr");
       if(el&&!el.value.trim()&&txt){
         el.value=txt;foldSummary();
@@ -701,7 +841,10 @@ function openRefForm(id,latlng){
   document.getElementById("refTitle").textContent=f?("참고사진 수정 — "+(f.kind||"")):"참고사진 추가";
   document.getElementById("btnRefDelete").style.display=f?"block":"none";
   document.getElementById("f_refMemo").value=f?(f.memo||""):"";
-  mkButtons("g_refKind",REF_KINDS,f?(f.kind||"현장"):"현장");
+  var _rk=f?(f.kind||"현장"):"현장";
+  mkButtons("g_refKind",REF_KINDS,REF_KINDS.indexOf(_rk)>=0?_rk:"기타",onRefKind);
+  document.getElementById("f_refKindEtc").value=(REF_KINDS.indexOf(_rk)<0)?_rk:"";
+  onRefKind(gval("g_refKind"));
   if(!f){
     var sh=document.getElementById("refSheet");
     sh.dataset.lat=latlng.lat;sh.dataset.lng=latlng.lng;
@@ -743,10 +886,18 @@ function addRefPhotos(inp){
     });
   });
 }
+function onRefKind(v){
+  document.getElementById("f_refKindEtc").style.display=(v==="기타")?"block":"none";
+}
 function saveRef(){
   var kind=gval("g_refKind");
   if(!kind){toast("종류를 선택하세요");return;}
-  if(refPhotos.length<1){toast("사진을 1장 이상 촬영하세요");return;}
+  if(kind==="기타"){
+    var _ke=document.getElementById("f_refKindEtc").value.trim().replace(/[\\\/:*?"<>|]/g,"");
+    if(!_ke){toast("기타 — 시설 이름을 입력하세요");return;}
+    kind=_ke;
+  }
+  if(refPhotos.length<2){toast("참고사진도 원경·근경 최소 2장을 촬영하세요 ("+refPhotos.length+"/2)");return;}
   var f=editingRefId?refById(editingRefId):{
     id:"f"+Date.now()+"_"+Math.floor(Math.random()*1e6),
     lat:parseFloat(document.getElementById("refSheet").dataset.lat),
@@ -817,11 +968,11 @@ function gval(id){return document.getElementById(id).dataset.val||"";}
 function toggleFold(id){document.getElementById(id).classList.toggle("open");}
 function foldSummary(){
   try{
-    var ps=document.getElementById("f_psize").value.trim()||gval("g_psize")||"-";
-    var s=[gval("g_drain")||"-",(gval("g_cover")||"-").split("(")[0],
+    var ps=curPsize()||"-";
+    var s=[document.getElementById("f_drain").value||"-",(gval("g_cover")||"-").split("(")[0],
            document.getElementById("f_mhtype").value.trim()||"-",
            document.getElementById("f_mhsize").value.trim()||"-",
-           (gval("g_ptype")||"-")+" "+ps,
+           (document.getElementById("f_ptype").value||"-")+" "+ps,
            "인버트"+(gval("g_invert")||"-"),"사다리"+(gval("g_ladder")||"-"),"낙하"+(gval("g_fall")||"-")];
     document.getElementById("sum_detail").textContent=s.join("·");
     var nt=document.getElementById("f_note").value.trim();
@@ -835,8 +986,16 @@ function cycleInput(inp,list){
   inp.value=list[(i+1)%list.length];
 }
 function syncUp(){
+  var c=document.getElementById("c_sync");
+  if(c&&!c.checked)return;   // 체크 해제 = 따로 입력
   var p=document.getElementById("f_pipe").value.trim();
   document.getElementById("f_up").value=p;
+}
+function syncToggle(){
+  var c=document.getElementById("c_sync");
+  var up=document.getElementById("f_up");
+  if(c.checked){syncUp();up.style.background="";}
+  else{up.style.background="#FEF9C3";up.focus();}   // 노란 배경 = 수동 입력 중
 }
 function incPipe(){
   var el=document.getElementById("f_pipe"),v=el.value.trim();
@@ -844,88 +1003,497 @@ function incPipe(){
   if(mch){el.value=mch[1]+String(parseInt(mch[2],10)+1).padStart(mch[2].length,"0");}
   syncUp();
 }
+function onWhyPick(v){
+  document.getElementById("f_stateWhyEtc").style.display=(v==="기타")?"block":"none";
+}
 function onStatePick(v){
   document.getElementById("depthWrap").style.display=(v==="조사")?"block":"none";
+  if(v==="조사"){
+    var fd=document.getElementById("fold_detail");
+    if(fd&&!fd.classList.contains("open")){
+      fd.classList.add("open");
+      setTimeout(function(){try{fd.scrollIntoView({behavior:"smooth",block:"start"});}catch(e){}},80);
+    }
+  }
   document.getElementById("detailCard").style.opacity=(v==="조사")?"1":".45";
   var ww=document.getElementById("whyWrap");
   if(v==="미개폐"){
     ww.style.display="block";
-    mkButtons("g_stateWhy",STATE_WHY["미개폐"],pendingWhy||"");
+    var _wl=STATE_WHY["미개폐"];
+    var _pw=pendingWhy||"";
+    mkButtons("g_stateWhy",_wl,_wl.indexOf(_pw)>=0?_pw:(_pw?"기타":""),onWhyPick);
+    document.getElementById("f_stateWhyEtc").value=(_pw&&_wl.indexOf(_pw)<0)?_pw:"";
+    onWhyPick(gval("g_stateWhy"));
     pendingWhy="";
   }else{
     ww.style.display="none";
     document.getElementById("g_stateWhy").dataset.val="";
   }
 }
-function onCctvPick(v){
-  var w=document.getElementById("cctvWhyWrap");
-  w.style.display=(v==="미주행")?"block":"none";
-  if(v!=="미주행"){
-    document.getElementById("g_cctvWhy").dataset.val="";
-    document.getElementById("f_cctvWhyEtc").style.display="none";
+function updDaySum(){
+  var el=document.getElementById("daySum");
+  if(!el)return;
+  var today=new Date().toISOString().slice(0,10);
+  var nC=0,nS=0,sM=0,sP=0,sR=0;
+  records.forEach(function(r){
+    if(r.date!==today)return;
+    if((r.surveyType||"")==="현황조사")nS++;else if((r.cctvMode||"미실시")!=="미실시")nC++;
+    sM+=parseFloat(r.mapLen)||0;
+    sP+=parseFloat(r.pipeLen)||0;
+    sR+=(parseFloat(r.cctvF)||0)+(parseFloat(r.cctvR)||0);
+  });
+  el.textContent="오늘: CCTV "+nC+"관로 · 현황 "+nS+"관로 | 도면합 "+sM.toFixed(0)+"m · 실측합 "+sP.toFixed(1)+"m · 주행합 "+sR.toFixed(1)+"m";
+}
+function updPipeSum(){
+  var el=document.getElementById("pipeSum");
+  if(!el)return;
+  function nv(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+  var ml=nv("f_mlen"),pl=nv("f_plen"),F=nv("f_cctvF"),R=nv("f_cctvR");
+  var run=F+R;
+  var st=gval("g_stype")||"CCTV 조사";
+  var cm=gval("g_cctvMode");
+  var stat;
+  if(st==="현황조사")stat="현황조사";
+  else if(!cm)stat="시나리오 미선택";
+  else if(cm==="완주")stat="완주";
+  else if(cm==="조사불가")stat="조사불가";
+  else stat=(gval("g_cctvRw")?"미완주":(R>0?"완주(정+역)":"입력중"));
+  var over=(pl>0&&run>pl+0.05);
+  var typ=(st==="현황조사")?"<span style='color:#93C5FD'>현황조사 관로</span>":"<span style='color:#FDBA74'>CCTV조사 관로</span>";
+  el.innerHTML=typ+" &nbsp;|&nbsp; 도면(대장) "+(ml||"-")+"m &nbsp;|&nbsp; 실측 "+(pl||"-")+"m &nbsp;|&nbsp; "+
+    "주행합 <span style='color:"+(over?"#FCA5A5":"#6EE7B7")+"'>"+(run?run.toFixed(1):"-")+"m"+(over?" ⚠초과":"")+"</span>"+
+    " &nbsp;|&nbsp; <span style='color:"+(stat==="완주"||stat==="완주(정+역)"?"#6EE7B7":(stat==="미완주"||stat==="조사불가"?"#FCA5A5":"#FDE68A"))+"'>"+stat+"</span>";
+}
+function onSurveyType(v){
+  var cc=document.getElementById("cctvCard");
+  var sw=document.getElementById("svyWhyWrap");
+  if(v==="현황조사"){
+    cc.style.display="none";
+    sw.style.display="block";
+    mkButtons("g_svyWhy",SURVEY_WHY,gval("g_svyWhy")||"CCTV 추후예정",onSvyWhy);
+  }else{
+    cc.style.display="";
+    sw.style.display="none";
+    var cm0=gval("g_cctvMode");
+    mkButtons("g_cctvMode",CCTV_MODES.slice(1),(cm0&&cm0!=="미실시")?cm0:"",onCctvMode);
+    onCctvMode(gval("g_cctvMode"));
+  }
+  updPipeSum();
+}
+function onSvyWhy(v){
+  document.getElementById("f_svyEtc").style.display=(v==="기타")?"block":"none";
+}
+var pickingDown=false;
+function pickDownStart(){
+  pickingDown=true;
+  document.getElementById("formSheet").classList.remove("show");
+  document.getElementById("pickBar").style.display="block";
+  toast("지도에서 하류맨홀 점을 터치하세요");
+}
+function pickDownEnd(hit){
+  pickingDown=false;
+  document.getElementById("pickBar").style.display="none";
+  document.getElementById("formSheet").classList.add("show");
+  if(hit){document.getElementById("f_down").value=hit.up;toast("하류: "+hit.up+" 연결됨");}
+}
+var _lastFix=null;
+function noteFix(cb){
+  try{
+    navigator.geolocation.getCurrentPosition(function(pos){
+      _lastFix={lat:pos.coords.latitude,lng:pos.coords.longitude,
+                acc:pos.coords.accuracy||0,t:Date.now()};
+      cb&&cb(_lastFix);
+    },function(){cb&&cb(null);},{timeout:4000,maximumAge:60000,enableHighAccuracy:true});
+  }catch(e){cb&&cb(null);}
+}
+function distM(a1,o1,a2,o2){
+  var R=6371000,d2r=Math.PI/180;
+  var dA=(a2-a1)*d2r,dO=(o2-o1)*d2r;
+  var h=Math.sin(dA/2)*Math.sin(dA/2)+Math.cos(a1*d2r)*Math.cos(a2*d2r)*Math.sin(dO/2)*Math.sin(dO/2);
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function levlt2(a,b){
+  if(a===b)return 0;
+  if(Math.abs(a.length-b.length)>1)return 9;
+  if(a.length===b.length){
+    var diff=[];
+    for(var i=0;i<a.length;i++)if(a[i]!==b[i])diff.push(i);
+    if(diff.length===1)return 1;
+    if(diff.length===2&&diff[1]===diff[0]+1&&a[diff[0]]===b[diff[1]]&&a[diff[1]]===b[diff[0]])return 1;
+    return 9;
+  }
+  var s=a.length<b.length?a:b,l=a.length<b.length?b:a;
+  for(var j=0;j<l.length;j++){
+    if(s===l.slice(0,j)+l.slice(j+1))return 1;
+  }
+  return 9;
+}
+function buildFinalIssues(){
+  var byUp={};
+  records.forEach(function(r){if(r.up)byUp[String(r.up)]=r;});
+  var iss={miss:[],unlink:[],nodown:[],typo:[],noLen:[],noCctv:[],farGps:[]};
+  records.forEach(function(r){
+    if(missingReq(r))iss.miss.push(r);
+    var dt=r.downType||"맨홀";
+    if(r.down){
+      if(!byUp[String(r.down)]){
+        iss.unlink.push(r);
+        for(var u in byUp){
+          if(u!==String(r.up)&&levlt2(String(r.down),u)===1){iss.typo.push({r:r,cand:u});break;}
+        }
+      }
+    }else if(dt==="맨홀"){iss.nodown.push(r);}
+    if(!String(r.pipeLen||"").trim())iss.noLen.push(r);
+    if((r.cctvMode||"미실시")==="미실시"&&(r.surveyType||"")!=="현황조사")iss.noCctv.push(r);
+    if(r.gpsDist&&parseFloat(r.gpsDist)>100)iss.farGps.push(r);
+  });
+  return iss;
+}
+function openFinalCheck(){
+  var iss=buildFinalIssues();
+  var hard=iss.miss.length+iss.unlink.length+iss.nodown.length;
+  if(hard===0)return false;   // 통과 → 바로 내보내기
+  var b=document.getElementById("finalBody");
+  b.innerHTML="";
+  function sec(title,arr,fmt,color){
+    if(!arr.length)return;
+    var h=document.createElement("div");
+    h.className="lbl";h.style.margin="10px 4px 4px";h.style.color=color||"#DC2626";
+    h.textContent=title+" — "+arr.length+"건";
+    b.appendChild(h);
+    arr.forEach(function(x){
+      var r=x.r||x;
+      var d=document.createElement("div");
+      d.className="siterow";
+      d.innerHTML='<div class="si"><div class="a">'+r.up+'</div><div class="p">'+fmt(x)+'</div></div>';
+      d.onclick=function(){closeSheet("finalSheet");openForm(r.id);};
+      b.appendChild(d);
+    });
+  }
+  sec("① 필수사진(A·B) 누락",iss.miss,function(r){return "누락: "+missingLabel(r);});
+  sec("② 하류 미연결 (미조사 또는 오타)",iss.unlink,function(r){return r.pipe+" : "+r.up+" → "+r.down+" (등록 안 됨)";});
+  sec("   └ 오타 의심",iss.typo,function(x){return "입력 "+x.r.down+" ↔ 등록 "+x.cand+" — 확인!";},"#B45309");
+  sec("③ 하류 미입력 (종결이면 하류 구분 선택)",iss.nodown,function(r){return r.pipe+" : "+r.up+" → ?";});
+  sec("④ 실연장 미입력 (참고)",iss.noLen.slice(0,8),function(r){return r.pipe;},"#6B7280");
+  sec("⑤ CCTV 미실시 (참고 — 현황조사만이면 정상)",iss.noCctv.slice(0,8),function(r){return r.pipe;},"#6B7280");
+  sec("⑥ 촬영 위치와 점 위치 멀었음 (참고)",iss.farGps,function(r){return r.gpsDist+"m 차이";},"#6B7280");
+  document.getElementById("finalSheet").classList.add("show");
+  return true;
+}
+var _skipFinal=false;
+function finalProceed(){
+  closeSheet("finalSheet");
+  _skipFinal=true;
+  exportZip();
+}
+var BOLT_TYPES=["1형식","3형식","기타"];
+var MH_TYPES=[["NM","표준맨홀"],["SM","소형맨홀"],["AR","박스암거맨홀"],["OC","기타맨홀"]];
+function setPress(on){
+  var b=document.getElementById("btnPress");
+  b.dataset.on=on?"1":"";
+  b.style.background=on?"#B45309":"#fff";
+  b.style.color=on?"#fff":"#6B7280";
+  b.style.borderColor=on?"#B45309":"#D1D5DB";
+  b.textContent=on?"✔ 압송관로 존재 (내부 확인됨)":"맨홀 내부에 압송관로가 꽂혀 있으면 이 버튼을 누르세요";
+}
+function togglePress(){setPress(document.getElementById("btnPress").dataset.on!=="1");}
+function noteClear(){
+  document.getElementById("f_note").value="";
+  foldSummary();
+  toast("특이사항을 비웠습니다");
+}
+function noteEtcAdd(){
+  var el=document.getElementById("f_noteEtc");
+  var v=el.value.trim();
+  if(!v){toast("기타 내용을 입력하세요");return;}
+  var n=document.getElementById("f_note");
+  n.value=n.value?(n.value+", "+v):v;
+  el.value="";
+  foldSummary();
+  toast("특이사항 추가: "+v);
+}
+function onMhChk(v){
+  document.getElementById("f_mhchkEtc").style.display=(v==="기타")?"block":"none";
+  if(v==="문제점 발견")toast("문제점을 특이사항 버튼/기타로 기록하고, 이상 사진(D~F)도 촬영하세요");
+  if(!v||v==="기타")return;
+  var st=(v==="이상없음"||v==="문제점 발견")?"조사":v;
+  mkButtons("g_state",STATES,st,onStatePick,true);
+  onStatePick(st);
+}
+function onMhTypePick(v){
+  document.getElementById("f_mhtypeEtc").style.display=(v==="OC")?"block":"none";
+  var sel=document.getElementById("f_mhsize");
+  var has=false;
+  for(var i=0;i<sel.options.length;i++)if(sel.options[i].value==="암거맨홀")has=true;
+  if(v==="AR"){
+    if(!has){var o=document.createElement("option");o.value="암거맨홀";o.textContent="암거맨홀";sel.appendChild(o);}
+    sel.value="암거맨홀";
+    sel.disabled=true;   // AR = 암거맨홀 강제
+  }else{
+    sel.disabled=false;
+    if(sel.value==="암거맨홀")sel.value="1호";
   }
 }
-function onCctvWhyPick(v){
-  document.getElementById("f_cctvWhyEtc").style.display=(v==="기타")?"block":"none";
+function onPtypePick(v){
+  var box=(v==="BOX"||v==="RCB");
+  var sel=document.getElementById("f_psizeSel");
+  var f=document.getElementById("f_psize");
+  document.getElementById("f_ptypeEtc").style.display=(v==="기타")?"block":"none";
+  var wh=document.getElementById("boxWH");
+  if(box){
+    sel.style.display="none";
+    f.style.display="none";
+    wh.style.display="flex";
+  }else{
+    wh.style.display="none";
+    sel.style.display="";
+    f.placeholder="직접입력(mm)";
+    f.style.background="";
+    f.style.display=(sel.value==="직접입력")?"":"none";
+  }
 }
-function onLedgerPick(v){
-  var h=document.getElementById("ledgerHint");
-  if(LEDGER_HINT[v]){h.textContent=LEDGER_HINT[v];h.style.display="block";}
-  else h.style.display="none";
+function onPsizeSel(v){
+  document.getElementById("f_psize").style.display=(v==="직접입력")?"":"none";
+}
+function onCoverPick(v){
+  document.getElementById("f_coverEtc").style.display=(v==="기타")?"block":"none";
+}
+function onBoltPick(v){
+  document.getElementById("f_boltEtc").style.display=(v==="기타")?"block":"none";
+}
+function curPsize(){
+  var pt0=document.getElementById("f_ptype").value||"";
+  var sel=document.getElementById("f_psizeSel");
+  var f=document.getElementById("f_psize").value.trim();
+  if(pt0==="BOX"||pt0==="RCB"){
+    var w=document.getElementById("f_psW").value.trim().replace(",",".");
+    var h=document.getElementById("f_psH").value.trim().replace(",",".");
+    return (w&&h)?(w+"*"+h):"";
+  }
+  return (sel.value==="직접입력")?f:sel.value;
+}
+function onDownType(v){
+  var inp=document.getElementById("f_down");
+  inp.style.display=(!v||v==="맨홀")?"":"none";
+  if(v&&v!=="맨홀")inp.value="";
+}
+function onCctvMode(v){
+  setTimeout(updPipeSum,0);
+  var body=document.getElementById("cctvBody");
+  if(!v||v==="미실시"){body.style.display="none";return;}
+  body.style.display="block";
+  var wF=document.getElementById("wrapF"),wR=document.getElementById("wrapR");
+  var wFw=document.getElementById("wrapFw"),wRw=document.getElementById("wrapRw");
+  var lblF=document.getElementById("lblF"),lblFw=document.getElementById("lblFw");
+  var cur=gval("g_cctvFw");
+  if(v==="완주"){
+    wF.style.display="";lblF.textContent="촬영한 길이(m) — 처음부터 끝까지";
+    wR.style.display="none";wFw.style.display="none";wRw.style.display="none";
+  }else if(v==="양쪽조사(정+역)"){
+    wF.style.display="";lblF.textContent="정주행(상류→하류) 촬영 길이(m) — 막힌 곳까지";
+    wR.style.display="";wFw.style.display="";wRw.style.display="";
+    lblFw.textContent="왜 멈췄나 — 막힌 원인 선택";
+    mkButtons("g_cctvFw",CCTV_WHY_STD,CCTV_WHY_STD.indexOf(cur)>=0?cur:"",onCctvFw);
+    mkButtons("g_cctvRw",CCTV_WHY_STD.concat(CCTV_WHY_ACC,RW_NOGO),gval("g_cctvRw"),onCctvRw);
+  }else if(v==="상류불가·역주행"){
+    wF.style.display="none";wR.style.display="";wFw.style.display="";wRw.style.display="";
+    lblFw.textContent="왜 이 맨홀로 못 들어갔나";
+    mkButtons("g_cctvFw",CCTV_WHY_ACC,CCTV_WHY_ACC.indexOf(cur)>=0?cur:"",onCctvFw);
+    mkButtons("g_cctvRw",CCTV_WHY_STD,gval("g_cctvRw"),onCctvRw);
+  }else{ // 조사불가
+    wF.style.display="none";wR.style.display="none";wFw.style.display="";wRw.style.display="none";
+    lblFw.textContent="CCTV 조사 자체를 못 한 사유";
+    mkButtons("g_cctvFw",CCTV_WHY_NOGO,CCTV_WHY_NOGO.indexOf(cur)>=0?cur:(cur?"기타":""),onCctvFw);
+  }
+  onCctvFw(gval("g_cctvFw"));
+}
+function onCctvRw(v){
+  document.getElementById("f_cctvRwEtc").style.display=(v==="기타")?"block":"none";
+}
+function onCctvFw(v){
+  document.getElementById("f_cctvFwEtc").style.display=(v==="기타")?"block":"none";
+}
+function pipeGeomWarn(cur){
+  try{
+    if(!cur||!cur.lat)return;
+    var msgs=[];
+    records.forEach(function(x){
+      if(!x.lat||x.id===cur.id)return;
+      var pl=parseFloat(x.pipeLen);
+      if(String(x.down||"")===String(cur.up)&&pl>0){
+        var d=distM(x.lat,x.lng,cur.lat,cur.lng);
+        if(Math.abs(d-pl)>5)msgs.push("관로 "+x.pipe+" ("+x.up+"→"+cur.up+"): 실측 "+pl.toFixed(1)+"m ↔ 지도 "+d.toFixed(1)+"m (차 "+Math.abs(d-pl).toFixed(1)+"m)");
+      }
+    });
+    var plc=parseFloat(cur.pipeLen);
+    if(cur.down&&plc>0){
+      var dn=null;
+      records.some(function(x){if(String(x.up)===String(cur.down)&&x.lat&&x.id!==cur.id){dn=x;return true;}return false;});
+      if(dn){
+        var d2=distM(cur.lat,cur.lng,dn.lat,dn.lng);
+        if(Math.abs(d2-plc)>5)msgs.push("관로 "+cur.pipe+" ("+cur.up+"→"+cur.down+"): 실측 "+plc.toFixed(1)+"m ↔ 지도 "+d2.toFixed(1)+"m (차 "+Math.abs(d2-plc).toFixed(1)+"m)");
+      }
+    }
+    if(msgs.length){
+      alert("⚠ 지도 위치 ↔ 실측연장 차이 5m 초과!\n\n"+msgs.join("\n")+
+            "\n\n위성지도에서 5m 이상 차이는 점 위치가 잘못 찍혔을 가능성이 큽니다.\n→ 지도의 점을 터치해 [위치이동]으로 바로잡거나, 실측값을 확인하세요.");
+    }
+  }catch(e){}
+}
+function nearTooClose(latlng){
+  var best=null,bd=1e18;
+  records.forEach(function(r){
+    if(!r.lat)return;
+    var d=distM(latlng.lat,latlng.lng,r.lat,r.lng);
+    if(d<bd){bd=d;best=r;}
+  });
+  return (best&&bd<3)?{r:best,d:bd}:null;
 }
 function openForm(id,latlng){
   editingId=id;formPhotos=[];
+  if(!id&&latlng){
+    var nc=nearTooClose(latlng);
+    if(nc&&!confirm("⚠ 직전 등록 맨홀 "+nc.r.up+"와(과) "+nc.d.toFixed(1)+"m 거리입니다.\n지도를 안 움직인 것 아닌가요?\n\n[확인]=그래도 여기에 추가  [취소]=위치 다시 지정"))return;
+  }
   var r=id?byId(id):null;
   pendingWhy=(r&&r.stateWhy)||"";
   var d=r||lastDefaults||{};
-  document.getElementById("formTitle").textContent=r?("수정 — "+(r.up||"")):"새 맨홀";
+  document.getElementById("formTitle").textContent=r?("수정 — "+(r.up||"")):APP_VER+" — 하수관로 조사 정보 입력 - 노영석(010-3725-4695) 미르이엔지";
   document.getElementById("btnDelete").style.display=r?"block":"none";
+  document.getElementById("btnCloseForm").textContent=r?"닫기":"✕ 취소 (지도로)";
   document.getElementById("btnMove").style.display=r?"block":"none";
-  document.getElementById("f_pipe").value=r?(r.pipe||""):"";
+  var pipeSuggest="";
+  if(!r&&records.length){
+    var lastP=String(records[records.length-1].pipe||"");
+    var pm=lastP.match(/^(.*?)(\d+)$/);
+    if(pm)pipeSuggest=pm[1]+String(parseInt(pm[2],10)+1).padStart(pm[2].length,"0");
+  }
+  document.getElementById("f_pipe").value=r?(r.pipe||""):pipeSuggest;
   document.getElementById("f_up").value=r?(r.up||""):"";
+  var cs=document.getElementById("c_sync");
+  if(cs){
+    cs.checked=r?((r.up||"")===(r.pipe||"")):true;
+    document.getElementById("f_up").style.background=cs.checked?"":"#FEF9C3";
+  }
   document.getElementById("f_down").value=r?(r.down||""):"";
+  var dl=document.getElementById("downOpts");
+  if(dl){
+    dl.innerHTML="";
+    records.forEach(function(x){
+      if(x.up&&(!r||x.id!==r.id)){
+        var o=document.createElement("option");o.value=x.up;dl.appendChild(o);
+      }
+    });
+  }
+  var dt0=(r&&r.downType)||"맨홀";
+  mkButtons("g_downType",DOWN_TYPES,dt0,onDownType);
+  onDownType(dt0);
   document.getElementById("f_depth").value=r?(r.depth||""):"";
+  document.getElementById("f_plen").value=r?(r.pipeLen||""):"";
+  document.getElementById("f_mlen").value=r?(r.mapLen||""):"";
   document.getElementById("f_addr").value=r?(r.addr||""):"";
   document.getElementById("f_note").value=r?(r.note||""):"";
-  document.getElementById("f_mhtype").value=(r?r.mhType:d.mhType)||"NM";
-  document.getElementById("f_mhsize").value=(r?r.mhSize:d.mhSize)||"1호";
-  var ps=(r?r.pipeSize:d.pipeSize)||"250";
+  (function(){
+    var sm=document.getElementById("f_mhtype");
+    sm.innerHTML="";
+    MH_TYPES.forEach(function(x){var o=document.createElement("option");o.value=x[0];o.textContent=x[0]+" ("+x[1]+")";sm.appendChild(o);});
+    sm.value=(r?r.mhType:d.mhType)||"NM";
+  })();
+  document.getElementById("f_mhtypeEtc").value=(r&&r.mhTypeEtc)||"";
+  (function(){
+    var sel=document.getElementById("f_mhsize");
+    sel.innerHTML="";
+    var cur=(r?r.mhSize:d.mhSize)||"1호";
+    var list=MH_SIZES.slice();
+    if(list.indexOf(cur)<0)list.push(cur);   // 구버전 값 보존
+    list.forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o);});
+    sel.value=cur;
+  })();
+  var ps=(r?r.pipeSize:d.pipeSize)||"200";
   mkButtons("g_state",STATES,r?(r.state||"조사"):"조사",onStatePick,true);
-  mkButtons("g_drain",DRAINS,(r?r.drain:d.drain)||"오수");
-  mkButtons("g_cover",COVERS,(r?r.cover:d.cover)||"CI(주철)");
-  mkButtons("g_ptype",PTYPES,(r?r.pipeType:d.pipeType)||"PE");
-  mkButtons("g_psize",PSIZES,PSIZES.indexOf(ps)>=0?ps:"");
-  document.getElementById("f_psize").value=PSIZES.indexOf(ps)>=0?"":ps;
+  (function(){
+    var sd=document.getElementById("f_drain");
+    sd.innerHTML="";
+    DRAINS.forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=v;sd.appendChild(o);});
+    sd.value=(r?r.drain:d.drain)||"오수";
+    var sp=document.getElementById("f_ptype");
+    sp.innerHTML="";
+    var PT_LBL={"RCB":"RCB (1.0*1.0 이상)","BOX":"BOX (측구 — 1.0*1.0 미만)"};
+    PTYPES.forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=PT_LBL[v]||v;sp.appendChild(o);});
+    sp.value=(r?r.pipeType:d.pipeType)||"PE";
+  })();
+  mkButtons("g_cover",COVERS,(r?r.cover:d.cover)||"CI(주철)",onCoverPick);
+  onCoverPick(gval("g_cover"));
+  onPtypePick(document.getElementById("f_ptype").value);
+  (function(){
+    var sel=document.getElementById("f_psizeSel");
+    sel.innerHTML="";
+    PSIZES.concat(["직접입력"]).forEach(function(v){var o=document.createElement("option");o.value=v;o.textContent=v;sel.appendChild(o);});
+    var pm2=String(ps).match(/^([\d.]+)\s*[*xX×]\s*([\d.]+)$/);
+    document.getElementById("f_psW").value=pm2?pm2[1]:"";
+    document.getElementById("f_psH").value=pm2?pm2[2]:"";
+    if(PSIZES.indexOf(ps)>=0){sel.value=ps;document.getElementById("f_psize").value="";}
+    else if(pm2){sel.value=PSIZES[0];document.getElementById("f_psize").value="";}
+    else{sel.value="직접입력";document.getElementById("f_psize").value=ps;}
+  })();
+  document.getElementById("f_ptypeEtc").value=(r&&r.pipeTypeEtc)||"";
+  document.getElementById("f_coverEtc").value=(r&&r.coverEtc)||"";
+  mkButtons("g_mhchk",MHCHK,(r&&r.mhCheck)||"",onMhChk);
+  document.getElementById("f_mhchkEtc").value=(r&&r.mhCheckEtc)||"";
+  document.getElementById("f_mhchkEtc").style.display=(((r&&r.mhCheck)||"")==="기타")?"block":"none";
+  mkButtons("g_bolt",BOLT_TYPES,(r&&r.boltType)||"",onBoltPick);
+  setPress(((r&&r.pressPipe)||"무")==="유");
+  document.getElementById("f_boltEtc").value=(r&&r.boltEtc)||"";
+  document.getElementById("f_boltEtc").style.display=(((r&&r.boltType)||"")==="기타")?"block":"none";
+  document.getElementById("f_boltBad").value=(r&&r.boltBad)||"";
   mkButtons("g_invert",YN,(r?r.invert:d.invert)||"유");
   mkButtons("g_ladder",YN,(r?r.ladder:d.ladder)||"유");
   mkButtons("g_fall",YN,(r?r.fall:d.fall)||"무");
   mkButtons("g_noteItem",NOTE_ITEMS,"",function(v){noteAdd(v,true);});
   mkButtons("g_noteSize",NOTE_SIZES,"",function(v){noteAdd(v,false);});
-  // CCTV·대장 구분 (수정 시 기존값, 신규는 기본값 — 직전값 유지 안 함)
-  var cv=(r&&r.cctv)||"미실시";
-  var cw=(r&&r.cctvWhy)||"";
-  mkButtons("g_cctv",CCTV_OPTS,cv,onCctvPick);
-  mkButtons("g_cctvWhy",CCTV_WHY,CCTV_WHY.indexOf(cw)>=0?cw:(cw?"기타":""),onCctvWhyPick);
-  document.getElementById("f_cctvWhyEtc").value=(cw&&CCTV_WHY.indexOf(cw)<0)?cw:"";
-  document.getElementById("f_cctvWhyEtc").style.display=(cw&&CCTV_WHY.indexOf(cw)<0)?"block":"none";
-  onCctvPick(cv);
-  var lg=(r&&r.ledger)||"대장";
-  mkButtons("g_ledger",LEDGER_OPTS,lg,onLedgerPick);
-  onLedgerPick(lg);
+  // CCTV 시나리오 (수정 시 기존값, 신규는 미실시)
+  var st0=(r&&r.surveyType)||(r?((r.cctvMode&&r.cctvMode!=="미실시")?"CCTV 조사":"현황조사")
+                              :(d.surveyType||"CCTV 조사"));
+  var sw0=(r&&r.surveyWhy)||"";
+  mkButtons("g_stype",["CCTV 조사","현황조사"],st0,onSurveyType);
+  document.getElementById("g_svyWhy").dataset.val=(SURVEY_WHY.indexOf(sw0)>=0)?sw0:(sw0?"기타":"");
+  document.getElementById("f_svyEtc").value=(sw0&&SURVEY_WHY.indexOf(sw0)<0)?sw0:"";
+  document.getElementById("f_svyEtc").style.display=(sw0&&SURVEY_WHY.indexOf(sw0)<0)?"block":"none";
+  var cm=(r&&r.cctvMode)||"미실시";
+  document.getElementById("f_cctvF").value=(r&&r.cctvF)||"";
+  document.getElementById("f_cctvNote").value=(r&&r.cctvNote)||"";
+  document.getElementById("f_cctvR").value=(r&&r.cctvR)||"";
+  var fw=(r&&r.cctvFw)||"";
+  var allWhy=CCTV_WHY_STD.concat(CCTV_WHY_ACC);
+  document.getElementById("g_cctvFw").dataset.val=(allWhy.indexOf(fw)>=0)?fw:(fw?"기타":"");
+  document.getElementById("f_cctvFwEtc").value=(fw&&allWhy.indexOf(fw)<0)?fw:"";
+  var _rw=(r&&r.cctvRw)||"";
+  var _rwList=CCTV_WHY_STD.concat(CCTV_WHY_ACC,RW_NOGO);
+  document.getElementById("g_cctvRw").dataset.val=(_rwList.indexOf(_rw)>=0)?_rw:(_rw?"기타":"");
+  document.getElementById("f_cctvRwEtc").value=(_rw&&_rwList.indexOf(_rw)<0)?_rw:"";
+  document.getElementById("f_cctvRwEtc").style.display=(_rw&&_rwList.indexOf(_rw)<0)?"block":"none";
+  mkButtons("g_cctvMode",CCTV_MODES,cm,onCctvMode);
+  onCctvMode(cm);
+  onSurveyType(st0);
+  updPipeSum();
   onStatePick(r?(r.state||"조사"):"조사");
+  if(!r&&pipeSuggest)syncUp();
   if(!r){
     document.getElementById("formSheet").dataset.lat=latlng.lat;
     document.getElementById("formSheet").dataset.lng=latlng.lng;
     revGeocode(latlng.lat,latlng.lng);   // VWorld 키 있으면 주소 자동입력
   }
   renderPhotoSlots(r?r.photos:null);
+  updDaySum();
   // 접기: 기본 닫힘(요약만 표시) — 특이사항 있으면 열어서 보여줌
   document.getElementById("fold_detail").classList.remove("open");
   var hasNote=!!(r&&(r.note||"").trim());
-  document.getElementById("fold_note").classList.toggle("open",hasNote);
+  // 특이사항은 상세(맨홀 세부정보) 안으로 이동됨 — 내용 있으면 상세 펼침
+  if(hasNote)document.getElementById("fold_detail").classList.add("open");
   foldSummary();
   document.getElementById("formSheet").classList.add("show");
   document.getElementById("formBody").scrollTop=0;
+  setTimeout(function(){try{document.getElementById("formBody").scrollTop=0;}catch(e){}},60);
 }
 function noteAdd(v,isItem){
   var el=document.getElementById("f_note"),cur=el.value.trim();
@@ -941,7 +1509,8 @@ function closeForm(){document.getElementById("formSheet").classList.remove("show
 function closeSheet(id){document.getElementById(id).classList.remove("show");}
 
 /* 사진 — 슬롯 방식: A배경 B덮개(필수) C내부 D~F이상 */
-var SLOT_DEFS=[["A","배경"],["B","덮개"],["C","내부"],["D","이상①"],["E","이상②"],["F","이상③"]];
+var SLOT_DEFS=[["A","배경(주변)"],["B","덮개(근접)"],["C","내부(열고)"],["D","이상①"],["E","이상②"],["F","이상③"]];
+var SLOT_HINT=["맨홀이 6시\n주변 보이게","덮개 원형\n전부 나오게","내부가\n잘 보이게","이상 부위\n또렷하게","이상 부위\n또렷하게","이상 부위\n또렷하게"];
 var pendingSlot=-1;
 function normalizeSlots(p){
   var out=[null,null,null,null,null,null];
@@ -950,7 +1519,17 @@ function normalizeSlots(p){
   return out;
 }
 function photosCount(r){return normalizeSlots(r&&r.photos).filter(Boolean).length;}
-function missingReq(r){var p=normalizeSlots(r&&r.photos);return (!p[0]||!p[1]);}
+function _upOwner(up,exceptId){
+  var o=null;
+  records.some(function(x){
+    if(String(x.up)===String(up)&&x.id!==exceptId&&x.photos&&x.photos[0]&&x.photos[1]){o=x;return true;}
+    return false;
+  });
+  return o;
+}
+function missingReq(r){
+  if((!r.photos||!(r.photos[0]&&r.photos[1]))&&_upOwner(r.up,r.id))return false;   // 분기: 사진은 대표 레코드가 보유
+  var p=normalizeSlots(r&&r.photos);return (!p[0]||!p[1]);}
 function missingLabel(r){
   var p=normalizeSlots(r&&r.photos),m=[];
   if(!p[0])m.push("A배경");if(!p[1])m.push("B덮개");
@@ -976,6 +1555,10 @@ function renderPhotoSlots(slots){
     }else{
       var cam=document.createElement("div");cam.className="cam";cam.textContent="📷";
       d.appendChild(cam);
+      var hint=document.createElement("div");
+      hint.style.cssText="position:absolute;left:2px;right:2px;bottom:4px;font-size:12px;line-height:1.3;color:#111827;text-align:center;white-space:pre-line;font-weight:800";
+      hint.textContent=(SLOT_HINT[i]||"");
+      d.appendChild(hint);
     }
     d.onclick=function(){
       if(k){openPhotoView(k,SLOT_DEFS[i][0]+" "+SLOT_DEFS[i][1],i);}
@@ -1002,6 +1585,16 @@ function slotCapture(inp){
           formPhotos[slot]=key;
           renderPhotoSlots(formPhotos);
           toast(SLOT_DEFS[slot][0]+"("+SLOT_DEFS[slot][1]+") 저장 확인 ✓");
+          noteFix(function(fx){
+            if(!fx)return;
+            var r0=editingId?byId(editingId):null;
+            var la=r0?r0.lat:parseFloat(document.getElementById("formSheet").dataset.lat);
+            var lo=r0?r0.lng:parseFloat(document.getElementById("formSheet").dataset.lng);
+            if(la&&lo){
+              var dd=Math.round(distM(la,lo,fx.lat,fx.lng));
+              if(dd>100)toast("⚠ 지금 위치와 점 위치가 "+dd+"m 떨어져 있습니다 — 점 위치 확인!");
+            }
+          });
         };
         t.onerror=function(){URL.revokeObjectURL(t.src);phDel(key);
           toast("⚠ 사진이 불량입니다 — 다시 촬영해 주세요");};
@@ -1024,7 +1617,59 @@ function resizeImg(file,maxDim,cb){
 }
 
 /* 데이터 안전: 영구저장·용량·내보내기 추적 */
+function lockTry(){
+  var v=document.getElementById("lockPw").value.replace(/\D/g,"");
+  if(v===atob("MDEwMzcyNTQ2OTU=")){
+    try{localStorage.setItem("mh_authok","1");}catch(e){}
+    document.getElementById("lockPane").style.display="none";
+    startFlow();
+  }else{
+    document.getElementById("lockPw").value="";
+    toast("암호가 틀렸습니다");
+  }
+}
+function initLock(){
+  try{document.getElementById("verTag").textContent=APP_VER;}catch(e){}
+  var ok=false;
+  try{ok=localStorage.getItem("mh_authok")==="1";}catch(e){}
+  if(ok){document.getElementById("lockPane").style.display="none";startFlow();}
+  else{try{document.getElementById("lockPw").focus();}catch(e){}}
+}
+var _resumeStart=false;
+function startFlow(){
+  var sp=document.getElementById("startPane");
+  document.getElementById("spStep1").style.display="";
+  document.getElementById("spStep2").style.display="none";
+  sp.style.display="flex";
+}
+function startStep2(){
+  document.getElementById("spStep1").style.display="none";
+  document.getElementById("spStep2").style.display="";
+  var ok=(settings.prj||"").trim()&&(settings.area||"").trim()&&(settings.team||"").trim();
+  var info=document.getElementById("spInfo");
+  var btns=document.getElementById("spBtns");
+  btns.innerHTML="";
+  function bt(txt,bg,fn){
+    var b=document.createElement("button");
+    b.textContent=txt;
+    b.style.cssText="width:240px;border:0;border-radius:12px;background:"+bg+";color:#fff;padding:14px;font-size:16px;font-weight:800";
+    b.onclick=fn;btns.appendChild(b);
+  }
+  if(ok){
+    info.innerHTML="사업명: <b>"+settings.prj+"</b><br>처리분구: <b>["+settings.area+"]</b> · 팀: <b>"+settings.team+"</b>";
+    bt("✅ 맞습니다 — 작업 시작","#059669",beginWork);
+    bt("설정 변경","#374151",function(){_resumeStart=true;document.getElementById("startPane").style.display="none";openSettings();});
+  }else{
+    info.innerHTML="<span style='color:#FCA5A5;font-weight:800'>설정이 비어 있습니다.</span><br>사업명·처리분구·팀을 먼저 입력하세요.<br><span style='color:#9CA3AF;font-size:13px'>(사무실이 보낸 설정코드를 붙여넣으면 한 번에 입력)</span>";
+    bt("설정 입력하러 가기","#2563EB",function(){_resumeStart=true;document.getElementById("startPane").style.display="none";openSettings();});
+  }
+}
+function beginWork(){
+  document.getElementById("startPane").style.display="none";
+  toast("📍 지금 계신 곳 맨홀의 위치를 정밀하게 표기하세요 — [＋] 버튼 → 십자선을 맨홀 위에!");
+}
 function initSafety(){
+  initLock();
   var ua=navigator.userAgent||"";
   if(/KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\//i.test(ua)){
     setTimeout(function(){
@@ -1084,8 +1729,12 @@ function showShare(file){
   document.getElementById("shareName").textContent="저장됨: "+_lastZipName+"  (다운로드 폴더)";
   bar.style.display="flex";
   var btn=document.getElementById("shareBtn");
-  if(!(file&&navigator.canShare&&navigator.canShare({files:[file]}))){
-    btn.style.display="none";   // 미지원 폰: 파일 위치 안내가 주 경로
+  var noShare=false;
+  try{noShare=localStorage.getItem("mh_noshare")==="1";}catch(e){}
+  if(noShare||!(file&&navigator.canShare&&navigator.canShare({files:[file]}))){
+    btn.style.display="none";   // 이 폰은 zip 바로공유 불가 → 파일 위치가 주 경로
+    document.getElementById("shareName").textContent=
+      "저장됨: "+_lastZipName+"  — [파일 위치]를 눌러 카톡에서 첨부하세요";
     return;
   }
   btn.style.display="";
@@ -1094,7 +1743,9 @@ function showShare(file){
       bar.style.display="none";toast("공유 완료 ✓");
     }).catch(function(err){
       if(err&&err.name==="AbortError")return;   // 사용자가 취소한 것
-      toast("⚠ 이 브라우저에선 바로 공유가 안 됩니다 — [파일 위치] 버튼을 눌러 안내대로 카톡에서 첨부하세요");
+      try{localStorage.setItem("mh_noshare","1");}catch(e){}
+      btn.style.display="none";
+      toast("⚠ 크롬은 zip 바로공유를 막는 폰이 많습니다 — [파일 위치] 방법으로 첨부하세요 (다음부터 바로 안내)");
     });
   };
 }
@@ -1181,18 +1832,26 @@ function saveRecord(){
   var up=document.getElementById("f_up").value.trim();
   if(!pipe||!up){toast("관로번호·상류맨홀번호는 필수입니다");return;}
   var state=gval("g_state");
-  var down0=document.getElementById("f_down").value.trim();
+  var downType=gval("g_downType")||"맨홀";
+  var down0=(downType==="맨홀")?document.getElementById("f_down").value.trim():"";
   var badCh=/[\\\/:*?"<>|]/;
   if(badCh.test(pipe)||badCh.test(up)||badCh.test(down0)){
     toast('번호에 \\ / : * ? " < > | 문자는 쓸 수 없습니다');return;
   }
   if(down0&&down0===up){toast("상류와 하류 맨홀번호가 같습니다 — 다시 확인하세요");return;}
-  var dup=records.some(function(r){return r.up===up&&r.id!==editingId;});
-  if(dup){toast("이미 등록된 상류맨홀번호입니다: "+up);return;}
+  var dupRec=null;
+  records.some(function(x){if(x.up===up&&x.id!==editingId){dupRec=x;return true;}return false;});
+  if(dupRec){
+    if(!confirm("이미 등록된 상류맨홀번호("+up+")입니다.\n같은 맨홀에서 나가는 두 번째 관로(분기)입니까?\n\n[확인]=분기로 저장 (맨홀 위치·사진 공유)  [취소]=번호 수정"))return;
+    if(!editingId&&dupRec.lat){
+      document.getElementById("formSheet").dataset.lat=dupRec.lat;
+      document.getElementById("formSheet").dataset.lng=dupRec.lng;
+    }
+  }
   var pdup=records.some(function(r){return r.pipe===pipe&&r.id!==editingId;});
   if(pdup){toast("이미 등록된 관로번호입니다: "+pipe);return;}
   // 필수 사진: A(배경)·B(맨홀덮개) — 상태 무관 기본 2장
-  if(!formPhotos[0]||!formPhotos[1]){
+  if((!formPhotos[0]||!formPhotos[1])&&!_upOwner(up,editingId)){
     var miss=[];
     if(!formPhotos[0])miss.push("A 배경");
     if(!formPhotos[1])miss.push("B 맨홀덮개");
@@ -1205,40 +1864,195 @@ function saveRecord(){
   var why="";
   if(state==="미개폐"){
     why=gval("g_stateWhy");
+    if(why==="기타"){
+      var _we=document.getElementById("f_stateWhyEtc").value.trim();
+      if(!_we){toast("미개폐 기타 사유를 입력하세요");return;}
+      why=_we;
+    }
     if(!why){
       if(!confirm("미개폐 사유가 선택되지 않았습니다.\n(주정차·적재물·차량통행·민원 등)\n\n사유 없이 저장할까요?"))return;
     }
   }
-  var psize=document.getElementById("f_psize").value.trim()||gval("g_psize");
+  var psize=curPsize();
   var r=editingId?byId(editingId):{
     id:"r"+Date.now()+"_"+Math.floor(Math.random()*1e6),
     lat:parseFloat(document.getElementById("formSheet").dataset.lat),
     lng:parseFloat(document.getElementById("formSheet").dataset.lng),
     created:new Date().toISOString()
   };
-  r.pipe=pipe;r.up=up;r.down=document.getElementById("f_down").value.trim();
+  r.pipe=pipe;r.up=up;r.down=down0;
   r.date=(r.date&&editingId)?r.date:new Date().toISOString().slice(0,10);
   r.state=state;
   r.depth=(state==="조사")?document.getElementById("f_depth").value.trim():state;
-  r.drain=gval("g_drain");r.cover=gval("g_cover");
+  r.drain=document.getElementById("f_drain").value;r.cover=gval("g_cover");
   r.mhType=document.getElementById("f_mhtype").value.trim();
+  r.mhTypeEtc=(r.mhType==="OC")?document.getElementById("f_mhtypeEtc").value.trim():"";
   r.mhSize=document.getElementById("f_mhsize").value.trim();
-  r.pipeType=gval("g_ptype");r.pipeSize=psize;
+  r.pipeType=document.getElementById("f_ptype").value;r.pipeSize=psize;
+  r.pipeTypeEtc=(r.pipeType==="기타")?document.getElementById("f_ptypeEtc").value.trim():"";
+  r.coverEtc=(r.cover==="기타")?document.getElementById("f_coverEtc").value.trim():"";
+  r.boltType=gval("g_bolt")||"";
+  r.boltEtc=(r.boltType==="기타")?document.getElementById("f_boltEtc").value.trim():"";
+  r.boltBad=document.getElementById("f_boltBad").value.trim();
+  r.cctvNote=(stype==="현황조사")?"":document.getElementById("f_cctvNote").value.trim();
+  r.mhCheck=mhchk;r.mhCheckEtc=(mhchk==="기타")?mhchkEtc:"";
+  r.pressPipe=(document.getElementById("btnPress").dataset.on==="1")?"유":"무";
   r.invert=gval("g_invert");r.ladder=gval("g_ladder");r.fall=gval("g_fall");
   r.addr=document.getElementById("f_addr").value.trim();
   r.note=document.getElementById("f_note").value.trim();
   r.stateWhy=why;
-  r.cctv=gval("g_cctv")||"미실시";
-  if(r.cctv==="미주행"){
-    var cw=gval("g_cctvWhy");
-    if(cw==="기타"){
-      var etc=document.getElementById("f_cctvWhyEtc").value.trim();
-      cw=etc||"기타";
+  var stype=gval("g_stype")||"CCTV 조사";
+  var svyWhy="";
+  if(stype==="현황조사"){
+    svyWhy=gval("g_svyWhy");
+    if(svyWhy==="기타"){
+      var se=document.getElementById("f_svyEtc").value.trim();
+      svyWhy=se||"기타";
     }
-    if(!cw){toast("CCTV 미주행 사유를 선택하세요");return;}
-    r.cctvWhy=cw;
-  }else{r.cctvWhy="";}
-  r.ledger=gval("g_ledger")||"대장";
+    if(!svyWhy){toast("현황조사만 하는 사유를 선택하세요");return;}
+  }
+  var cm=(stype==="현황조사")?"미실시":(gval("g_cctvMode")||"");
+  if(stype!=="현황조사"&&!cm){toast("CCTV 시나리오(완주/중단→역주행 등)를 선택하세요");return;}
+  var cF=document.getElementById("f_cctvF").value.trim();
+  var cR=document.getElementById("f_cctvR").value.trim();
+  var cFw=gval("g_cctvFw");
+  if(cFw==="기타"){
+    var etcw=document.getElementById("f_cctvFwEtc").value.trim();
+    cFw=etcw||"기타";
+  }
+  var cRw=gval("g_cctvRw");
+  if(cRw==="기타"){
+    var _re=document.getElementById("f_cctvRwEtc").value.trim();
+    if(!_re){toast("역주행 기타 사유를 입력하세요");return;}
+    cRw=_re;
+  }
+  function num(x){var v=parseFloat(x);return isNaN(v)?0:v;}
+  if(cm==="완주"){
+    if(num(cF)<=0){toast("CCTV 완주: 조사 연장(m)을 입력하세요");return;}
+    cR="";cFw="";cRw="";
+  }else if(cm==="양쪽조사(정+역)"){
+    if(num(cF)<=0){toast("정주행 연장(중단 지점까지)을 입력하세요");return;}
+    if(!cFw){toast("정주행 중단 사유를 선택하세요");return;}
+    if(num(cR)<=0&&!cRw){toast("역주행 연장을 입력하거나, 역주행 못 한 사유를 선택하세요 (미완주 처리)");return;}
+  }else if(cm==="상류불가·역주행"){
+    if(!cFw){toast("정주행 불가 사유를 선택하세요");return;}
+    if(num(cR)<=0){toast("역주행 연장(m)을 입력하세요");return;}
+    cF="";
+  }else if(cm==="조사불가"){
+    if(!cFw){toast("조사불가 사유를 선택하세요");return;}
+    cF="";cR="";cRw="";
+  }else{cF="";cR="";cFw="";cRw="";}
+  // ── 검증 (aaa.py 규칙 이식) ──
+  ["f_depth","f_plen","f_mlen","f_cctvF","f_cctvR"].forEach(function(fid){
+    var el=document.getElementById(fid);
+    if(el&&el.value.indexOf(",")>=0)el.value=el.value.replace(/,/g,".");
+  });
+  var pl=num(document.getElementById("f_plen").value);
+  var ml=num(document.getElementById("f_mlen").value);
+  var dep=num(document.getElementById("f_depth").value);
+  if(pl>=1000){toast("실연장은 1000m 미만으로 입력해야 합니다");return;}
+  if(ml>=1000){toast("도면연장은 1000m 미만으로 입력해야 합니다");return;}
+  if(num(cF)>=1000||num(cR)>=1000){toast("주행연장은 1000m 미만으로 입력해야 합니다");return;}
+  if(dep>10){toast("맨홀깊이가 10m를 초과합니다 — 다시 확인하세요");return;}
+  if(dep>0&&(dep<0.3||dep>6)){
+    if(!confirm("맨홀깊이 "+dep+"m — 보통 0.3~6m입니다.\n단위(cm/m) 착오가 아닌지 확인. 맞습니까?"))return;
+  }
+  if(pl>0&&(pl<2||pl>100)){
+    if(!confirm("실연장 "+pl+"m — 보통 2~100m입니다.\n입력이 맞습니까?"))return;
+  }
+  if(ml>0&&pl>0&&(pl<ml*0.7||pl>ml*1.3)){
+    if(!confirm("도면연장 "+ml+"m 대비 실연장 "+pl+"m (±30% 초과 차이)\n실측이 맞습니까? (대장 오류면 그대로 진행)"))return;
+  }
+  if(pl>0&&(num(cF)+num(cR))>pl+0.05){
+    toast("⚠ 주행연장 합계("+(num(cF)+num(cR)).toFixed(1)+"m)가 실연장("+pl.toFixed(1)+"m)을 초과할 수 없습니다");
+    return;
+  }
+  var pt=document.getElementById("f_ptype").value||"";
+  var reqMiss=[];
+  if(downType==="맨홀"&&!down0)reqMiss.push("하류맨홀번호(또는 하류 구분 선택)");
+  if(!(pl>0))reqMiss.push("실연장");
+  if(!pt)reqMiss.push("관종");
+  if(pt==="기타"&&!document.getElementById("f_ptypeEtc").value.trim())reqMiss.push("관종(기타 내용)");
+  if(!psize)reqMiss.push("관경");
+  if(stype!=="현황조사"&&cm&&cm!=="조사불가"&&(num(cF)+num(cR))<=0)reqMiss.push("주행연장(정/역)");
+  // 번호 패턴 검사: 지구 내 최빈 자릿수와 다르면 확인
+  function lenMode(arr){
+    var cnt={};arr.forEach(function(x){if(x)cnt[x.length]=(cnt[x.length]||0)+1;});
+    var bl=0,bc=0;for(var k in cnt)if(cnt[k]>bc){bc=cnt[k];bl=parseInt(k,10);}
+    return bc>=3?bl:0;   // 3건 이상 쌓였을 때만 패턴으로 인정
+  }
+  var others=records.filter(function(x){return x.id!==(editingId||"");});
+  function sig(s){return String(s).replace(/\d/g,"9").replace(/[A-Za-z]/g,"A");}
+  function sigMode(arr){
+    var cnt={};arr.forEach(function(x){if(x)cnt[sig(x)]=(cnt[sig(x)]||0)+1;});
+    var bs="",bc=0;for(var k in cnt)if(cnt[k]>bc){bc=cnt[k];bs=k;}
+    return bc>=3?bs:"";
+  }
+  var upLen=lenMode(others.map(function(x){return String(x.up||"");}));
+  var ppLen=lenMode(others.map(function(x){return String(x.pipe||"");}));
+  var upSig=sigMode(others.map(function(x){return String(x.up||"");}));
+  var ppSig=sigMode(others.map(function(x){return String(x.pipe||"");}));
+  var patWarn=[];
+  if(ppSig&&sig(pipe)!==ppSig)patWarn.push("관로번호 형식이 평소와 다름 (숫자·문자 배열)");
+  if(upSig&&sig(up)!==upSig)patWarn.push("상류맨홀번호 형식이 평소와 다름");
+  if(down0&&upSig&&sig(down0)!==upSig)patWarn.push("하류맨홀번호 형식이 평소와 다름");
+  if(upLen&&up.length!==upLen)patWarn.push("상류맨홀번호("+up.length+"자리 — 앞선 번호들은 "+upLen+"자리)");
+  if(ppLen&&pipe.length!==ppLen)patWarn.push("관로번호("+pipe.length+"자리 — 앞선 번호들은 "+ppLen+"자리)");
+  if(down0&&upLen&&down0.length!==upLen)patWarn.push("하류맨홀번호("+down0.length+"자리)");
+  if(patWarn.length&&!confirm("⚠ 번호 자릿수가 평소와 다릅니다:\n· "+patWarn.join("\n· ")+"\n\n오타가 아닌지 확인하세요. 이대로 저장할까요?"))return;
+  var mhchk=gval("g_mhchk");
+  var mhchkEtc=document.getElementById("f_mhchkEtc").value.trim();
+  if(!mhchk)reqMiss.push("맨홀 점검결과(상세 안 — 이상없음 등 이중확인)");
+  if(mhchk==="기타"&&!mhchkEtc)reqMiss.push("점검결과 기타 상세사유");
+  if(mhchk==="문제점 발견"&&!document.getElementById("f_note").value.trim())
+    reqMiss.push("특이사항 내용(문제점 발견 선택함 — 버튼/기타로 기록)");
+  var _bb=document.getElementById("f_boltBad").value.trim();
+  if(_bb&&_bb!=="0"&&!gval("g_bolt"))reqMiss.push("덮개 볼트형식(불량 개수를 적었으므로)");
+  if(reqMiss.length){toast("⚠ 필수 입력 누락 → "+reqMiss.join(" · "));return;}
+  if(mhchk&&mhchk!=="기타"){
+    var expSt=(mhchk==="이상없음"||mhchk==="문제점 발견")?"조사":mhchk;
+    if(state!==expSt){toast("⚠ 맨홀 상태("+state+")와 점검결과("+mhchk+")가 다릅니다 — 확인 후 맞춰주세요");return;}
+  }
+  if(state==="조사"&&!formPhotos[2]){
+    if(!confirm("상태 '조사'(덮개 열어 확인)인데 내부(C) 사진이 없습니다.\n내부 사진을 찍는 것을 권장합니다. 이대로 저장할까요?"))return;
+  }
+  if(cm==="상류불가·역주행"&&state!=="조사"&&cFw==="물수위"){
+    if(!confirm("사유가 물수위(장비만 못 넣음)인데 맨홀 상태가 '"+state+"'입니다.\n맨홀 자체는 열어 조사할 수 있지 않았나요?"))return;
+  }
+  if(psize&&psize!=="-"){
+    if(pt==="BOX"||pt==="RCB"){
+      if(!/^\d+(\.\d+)?\*\d+(\.\d+)?$/.test(psize.replace(/\s/g,""))){
+        toast("["+pt+"] 관경: 가로·세로 두 칸을 모두 숫자로 입력하세요");return;
+      }
+      var _wh=psize.split("*");
+      if(parseFloat(_wh[0])<parseFloat(_wh[1])){
+        if(!confirm("가로("+_wh[0]+")가 세로("+_wh[1]+")보다 작습니다.\n보통 가로≥세로입니다. 바뀐 것 아닌가요?"))return;
+      }
+    }else{
+      if(!/^\d+$/.test(psize)||parseInt(psize,10)<1||parseInt(psize,10)>2000){
+        toast("[관경]은 1~2000 범위 숫자만 입력해야 합니다");return;
+      }
+    }
+  }
+  r.surveyType=stype;r.surveyWhy=svyWhy;
+  r.cctvMode=cm;r.cctvF=cF;r.cctvR=cR;r.cctvFw=cFw;r.cctvRw=cRw;
+  // 하위호환(도면·목록용): 전 구간 조사되면 주행, 잔존·불가면 미주행
+  if(cm==="미실시"){r.cctv="미실시";r.cctvWhy="";}
+  else if(cm==="조사불가"){r.cctv="미주행";r.cctvWhy=cFw;}
+  else if(cRw){r.cctv="미주행";r.cctvWhy=cRw;}
+  else{r.cctv="주행";r.cctvWhy="";}
+  r.ledger=r.ledger||"대장";   // 대장구분 UI 제거 — 기존값 보존
+  r.pipeLen=document.getElementById("f_plen").value.trim();
+  r.mapLen=document.getElementById("f_mlen").value.trim();
+  r.downType=downType;
+  if(_lastFix&&(Date.now()-_lastFix.t)<300000){
+    r.gpsAcc=Math.round(_lastFix.acc);
+    try{
+      var la1=r.lat||parseFloat(document.getElementById("formSheet").dataset.lat);
+      var lo1=r.lng||parseFloat(document.getElementById("formSheet").dataset.lng);
+      if(la1&&lo1)r.gpsDist=Math.round(distM(la1,lo1,_lastFix.lat,_lastFix.lng));
+    }catch(e){}
+  }
   r.updatedAt=new Date().toISOString();   // 갱신 병합용 수정시각
   if(state!=="조사"){
     var base=why?(state+"("+why+")"):state;
@@ -1248,9 +2062,26 @@ function saveRecord(){
   r.photos=formPhotos.slice();
   if(!editingId)records.push(r);
   lastDefaults={drain:r.drain,cover:r.cover,mhType:r.mhType,mhSize:r.mhSize,
-                pipeType:r.pipeType,pipeSize:r.pipeSize,invert:r.invert,ladder:r.ladder,fall:r.fall};
+                pipeType:r.pipeType,pipeSize:r.pipeSize,invert:r.invert,ladder:r.ladder,fall:r.fall,
+                surveyType:r.surveyType};
   persist();renderMap();closeForm();
   toast((editingId?"수정":"저장")+" 완료 — "+up+(r.down?(" → "+r.down):""));
+  // 도착 연결 제안: 직전 신규 관로의 하류가 비어있으면 지금 맨홀로 연결
+  if(!editingId){
+    try{
+      var pvId=localStorage.getItem(nsKey("mh_lastNew"));
+      var pv=pvId?byId(pvId):null;
+      if(pv&&pv.id!==r.id&&!pv.down&&(pv.downType||"맨홀")==="맨홀"&&pv.up!==up){
+        if(confirm("직전 관로 "+pv.pipe+" ("+pv.up+" → ?)의 하류를\n지금 맨홀("+up+")로 연결할까요?")){
+          pv.down=up;pv.updatedAt=new Date().toISOString();
+          persist();renderMap();
+          toast("연결됨: "+pv.up+" → "+up);
+        }
+      }
+      localStorage.setItem(nsKey("mh_lastNew"),r.id);
+    }catch(e){}
+  }
+  pipeGeomWarn(r);
 }
 function delRecord(){
   if(!editingId)return;
@@ -1271,10 +2102,11 @@ function openList(){
     var d=document.createElement("div");d.className="item";
     var pend=r.down&&!byUp[String(r.down)];
     d.innerHTML='<div class="dot" style="background:'+stateColor(r)+'"></div>'+
-      '<div class="info"><div class="t1">'+r.up+(r.down?(' → '+r.down+(pend?' <span style="color:#D97706">(미연결)</span>':'')):'')+'</div>'+
+      '<div class="info"><div class="t1">'+r.up+(r.down?(' → '+r.down+(pend?' <span style="color:#D97706">(미연결)</span>':'')):(r.downType&&r.downType!=="맨홀"?(' → <span style="color:#0E7490">['+r.downType+' 종결]</span>'):''))+'</div>'+
       '<div class="t2">'+r.date+' · '+r.state+(r.stateWhy?('('+r.stateWhy+')'):'')+
       (r.ledger&&r.ledger!=="대장"?(' · <b style="color:'+(r.ledger==="멸실"?"#6B7280":"#059669")+'">['+r.ledger+']</b>'):'')+
-      (r.cctv==="주행"?' · <b style="color:#059669">CCTV완주</b>':(r.cctv==="미주행"?(' · <b style="color:#DC2626">CCTV미주행('+(r.cctvWhy||"")+')</b>'):''))+
+      (r.cctvMode&&r.cctvMode!=="미실시"?(' · <b style="color:'+(r.cctv==="주행"?"#059669":"#DC2626")+'">CCTV '+r.cctvMode+(r.cctvFw?('('+r.cctvFw+')'):'')+'</b>')
+        :((r.surveyType==="현황조사"&&r.surveyWhy)?(' · <b style="color:#6B7280">현황조사('+r.surveyWhy+')</b>'):''))+
       ' · 깊이 '+(r.depth||"-")+' · '+
       (missingReq(r)?('<span style="color:#DC2626;font-weight:bold">사진누락 '+missingLabel(r)+' ⚠</span>'):('사진 '+photosCount(r)+'장'))+
       (r.note?(' · '+r.note):'')+'</div></div>';
@@ -1430,12 +2262,14 @@ function saveSettings(){
     }
     closeSheet("setSheet");
     toast("지구 전환: "+_oldArea+" → "+newArea+" ("+records.length+"건) — 이전 지구 자료는 안전하게 보관됨");
+    if(_resumeStart){_resumeStart=false;startFlow();startStep2();document.getElementById("spStep1").style.display="none";}
     return;
   }
   closeSheet("setSheet");toast("설정 저장 완료");
+  if(_resumeStart){_resumeStart=false;startFlow();startStep2();document.getElementById("spStep1").style.display="none";}
 }
 function applyTitle(){
-  document.getElementById("prjTitle").textContent=(settings.area?("["+settings.area+"] "):"")+(settings.prj||"맨홀 현황조사");
+  document.getElementById("prjTitle").textContent=(settings.area?("["+settings.area+"] "):"")+(settings.prj||"하수관로 조사 입력 — 미르이엔지");
 }
 function wipeAll(){
   if(!confirm("["+curArea()+"] 지구의 데이터를 삭제할까요?\n(다른 지구 자료는 그대로 남습니다 / 내보내기 안 한 자료는 복구 불가)"))return;
@@ -1458,6 +2292,8 @@ function wipeAll(){
 function pad3(n){return ("000"+n).slice(-3);}
 function exportZip(){
   if(!records.length&&!refs.length){toast("내보낼 데이터가 없습니다");return;}
+  if(!_skipFinal&&openFinalCheck())return;
+  _skipFinal=false;
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
   var _nph=0;
   records.forEach(function(r){(r.photos||[]).forEach(function(k){if(k)_nph++;});});
@@ -1465,7 +2301,7 @@ function exportZip(){
   toast(_nph>400?("사진 "+_nph+"장 — 파일이 커서 시간이 걸립니다. 화면을 끄지 마세요"):"zip 만드는 중… 사진이 많으면 몇 초 걸립니다");
   var zip=new JSZip();
   var out={version:"mh1",exported:new Date().toISOString(),settings:settings,records:[],refs:[]};
-  var csv="﻿NO,조사일자,관로번호,상류맨홀번호,하류맨홀번호,위도,경도,상태,깊이,배수방식,덮개,맨홀종류,맨홀크기,관종,관경,인버트,사다리,낙하방지,주소,특이사항,사진수,CCTV,CCTV미주행사유,대장구분\n";
+  var csv="﻿NO,조사일자,관로번호,상류맨홀번호,하류맨홀번호,하류구분,위도,경도,상태,점검결과,깊이,실연장,도면연장,배수방식,덮개,맨홀종류,맨홀크기,관종,관경,인버트,사다리,낙하방지,볼트형식,볼트구멍불량,압송관로,주소,특이사항,사진수,조사유형,현황조사사유,CCTV모드,정주행m,정주행사유,역주행m,역주행사유,CCTV특이사항,대장구분,GPS정확도m,GPS거리m\n";
   var tasks=[];
   records.forEach(function(r,i){
     var no=i+1;
@@ -1479,10 +2315,14 @@ function exportZip(){
     var rec={};for(var kk in r)if(kk!=="photos")rec[kk]=r[kk];
     rec.no=no;rec.photoNames=names;
     out.records.push(rec);
-    csv+=[no,r.date,r.pipe,r.up,r.down||"",r.lat,r.lng,r.state,r.depth||"",r.drain,r.cover,r.mhType,r.mhSize,
-          r.pipeType,r.pipeSize,r.invert,r.ladder,r.fall,
+    csv+=[no,r.date,r.pipe,r.up,r.down||"",r.downType||"맨홀",r.lat,r.lng,r.state,(r.mhCheck||"")+(r.mhCheckEtc?("("+r.mhCheckEtc+")"):""),r.depth||"",r.pipeLen||"",r.mapLen||"",r.drain,r.cover,r.mhType,r.mhSize,
+          r.pipeType+(r.pipeTypeEtc?("("+r.pipeTypeEtc+")"):""),r.pipeSize,r.invert,r.ladder,r.fall,
+          (r.boltType||"")+(r.boltEtc?("("+r.boltEtc+")"):""),r.boltBad||"",r.pressPipe||"무",
           '"'+(r.addr||"").replace(/"/g,'""')+'"','"'+(r.note||"").replace(/"/g,'""')+'"',photosCount(r),
-          r.cctv||"미실시",'"'+(r.cctvWhy||"").replace(/"/g,'""')+'"',r.ledger||"대장"].join(",")+"\n";
+          r.surveyType||"",'"'+(r.surveyWhy||"").replace(/"/g,'""')+'"',
+          r.cctvMode||"미실시",r.cctvF||"",'"'+(r.cctvFw||"").replace(/"/g,'""')+'"',
+          r.cctvR||"",'"'+(r.cctvRw||"").replace(/"/g,'""')+'"','"'+(r.cctvNote||"").replace(/"/g,'""')+'"',
+          r.ledger||"대장",r.gpsAcc||"",r.gpsDist||""].join(",")+"\n";
   });
   var kindCnt={};
   refs.forEach(function(f){
@@ -1500,6 +2340,13 @@ function exportZip(){
   });
   zip.file("조사데이터.json",JSON.stringify(out,null,1));
   zip.file("조사데이터.csv",csv);
+  zip.file("읽어주세요.txt",
+    "이 zip은 현장 원자료입니다 (조사데이터 + 사진 원본).\r\n"+
+    "사무실 PC에서 [맨홀보고서_생성.bat] 아이콘에 이 zip을 끌어다 놓으면\r\n"+
+    "결과 폴더에 다음이 자동 생성됩니다:\r\n"+
+    "  · 맨홀조사보고서(.xlsm)  · 사진_원본/  · 사진_보드판/(정보표 합성)\r\n"+
+    "  · 사진대지(.xlsx)  · CAD 도면(.dxf)+위성배경  · 연결목록/대장변경목록(.csv)\r\n"+
+    "폰에서는 이 zip을 열어볼 필요 없이 그대로 사무실에 전달만 하면 됩니다.");
   function buildZip(){
     var done=0;
     if(!tasks.length){finish();return;}
@@ -1591,7 +2438,14 @@ document.getElementById("formBody").addEventListener("input",foldSummary);
 
 /* 시작 */
 loadAll();applyTitle();
-idbOpen(function(){initMap();initSafety();});
+function reorderForm(){
+  try{
+    var fd=document.getElementById("fold_detail");
+    var cc=document.getElementById("cctvCard");
+    if(fd&&cc)cc.parentNode.insertBefore(fd,cc);   // 상태 → 상세(상류맨홀) → CCTV 순서
+  }catch(e){}
+}
+idbOpen(function(){initMap();initSafety();reorderForm();});
 </script>
 </body>
 </html>
