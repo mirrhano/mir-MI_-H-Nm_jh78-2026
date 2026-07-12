@@ -284,11 +284,21 @@ input.small{font-size:16px;}
           <div class="lbl" id="lblFw">중단 사유 (nPASS 표준)</div>
           <div class="btns c3" id="g_cctvFw"></div>
           <input type="text" id="f_cctvFwEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 사유 직접입력">
+          <div id="fwWhyWrap" style="margin-top:8px;display:none">
+            <div class="lbl">미개폐 세부사유 (왜 열지 않았는지)</div>
+            <div class="btns c5" id="g_cctvFwWhy"></div>
+            <input type="text" id="f_cctvFwWhyEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 — 미개폐 세부사유 직접입력">
+          </div>
         </div>
         <div id="wrapRw" style="margin-top:8px">
           <div class="lbl">역주행을 못 했거나 중간에 멈춘 이유 <span style="color:#6B7280;font-weight:normal">— 끝까지 갔으면 비워두세요</span></div>
           <div class="btns c3" id="g_cctvRw"></div>
           <input type="text" id="f_cctvRwEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 — 역주행 사유 직접입력">
+          <div id="rwWhyWrap" style="margin-top:8px;display:none">
+            <div class="lbl">미개폐 세부사유 (하류맨홀을 왜 못 열었는지)</div>
+            <div class="btns c5" id="g_cctvRwWhy"></div>
+            <input type="text" id="f_cctvRwWhyEtc" class="small" style="margin-top:6px;display:none" placeholder="기타 — 미개폐 세부사유 직접입력">
+          </div>
         </div>
         <div style="margin-top:8px">
           <div class="lbl">관로 특이사항 <span style="color:#6B7280;font-weight:normal">— 1년 안에 문제될 수 있는 긴급·중요사항, 조사하며 하고 싶은 말 (선택)</span></div>
@@ -542,7 +552,7 @@ var STATE_WHY={
   "미개폐":["주정차","적재물","차량통행","민원","기타"]
 };
 var REF_KINDS=["펌프장","하수처리장","토구","현장","기타"];
-var APP_VER="v5.9";
+var APP_VER="v6.2";
 var CCTV_MODES=["미실시","완주","양쪽조사(정+역)","상류불가·역주행","조사불가"];
 var CCTV_WHY_NOGO=["장비 진입불가","차량·주정차","도로 통제불가","수위 높음","안전 위험","민원","기타"];
 var MHCHK=["이상없음","문제점 발견","개폐불가","맨홀묻힘","확인불가","미개폐","기타"];
@@ -1350,6 +1360,13 @@ function onMhChk(v){
   var st=(v==="이상없음"||v==="문제점 발견")?"조사":v;
   mkButtons("g_state",STATES,st,onStatePick,true);
   onStatePick(st);
+  if(v==="미개폐"){   // v6.2: 사유줄이 위 상태 칸에 열림 — 보이게 스크롤+안내
+    try{
+      var _ww=document.getElementById("whyWrap");
+      if(_ww)setTimeout(function(){try{_ww.scrollIntoView({behavior:"smooth",block:"center"});}catch(e){}},120);
+      toast("미개폐 사유(주정차 등)를 상류맨홀 상태 아래에서 선택하세요");
+    }catch(e){}
+  }
 }
 function onMhTypePick(v){
   document.getElementById("f_mhtypeEtc").style.display=(v==="OC")?"block":"none";
@@ -1438,12 +1455,47 @@ function onCctvMode(v){
     mkButtons("g_cctvFw",CCTV_WHY_NOGO,CCTV_WHY_NOGO.indexOf(cur)>=0?cur:(cur?"기타":""),onCctvFw);
   }
   onCctvFw(gval("g_cctvFw"));
+  onCctvRw(gval("g_cctvRw"));
 }
 function onCctvRw(v){
   document.getElementById("f_cctvRwEtc").style.display=(v==="기타")?"block":"none";
+  // v6.2: 역주행 사유가 미개폐(하류맨홀)면 세부사유 입력줄 표시
+  var rww=document.getElementById("rwWhyWrap");
+  if(rww){
+    if(v==="미개폐"){
+      var _wl=STATE_WHY["미개폐"];
+      var _cur=(document.getElementById("g_cctvRwWhy").dataset.val)||"";
+      mkButtons("g_cctvRwWhy",_wl,_wl.indexOf(_cur)>=0?_cur:(_cur?"기타":""),onCctvRwWhy);
+      if(_cur&&_wl.indexOf(_cur)<0)document.getElementById("f_cctvRwWhyEtc").value=_cur;
+      rww.style.display="block";
+      onCctvRwWhy(gval("g_cctvRwWhy"));
+    }else{
+      rww.style.display="none";
+    }
+  }
+}
+function onCctvRwWhy(v){
+  document.getElementById("f_cctvRwWhyEtc").style.display=(v==="기타")?"block":"none";
 }
 function onCctvFw(v){
   document.getElementById("f_cctvFwEtc").style.display=(v==="기타")?"block":"none";
+  // v6.0: 정주행 사유가 미개폐면 세부사유(주정차 등) 입력줄 표시
+  var fww=document.getElementById("fwWhyWrap");
+  if(fww){
+    if(v==="미개폐"){
+      var _wl=STATE_WHY["미개폐"];
+      var _cur=(document.getElementById("g_cctvFwWhy").dataset.val)||"";
+      mkButtons("g_cctvFwWhy",_wl,_wl.indexOf(_cur)>=0?_cur:(_cur?"기타":""),onCctvFwWhy);
+      if(_cur&&_wl.indexOf(_cur)<0)document.getElementById("f_cctvFwWhyEtc").value=_cur;
+      fww.style.display="block";
+      onCctvFwWhy(gval("g_cctvFwWhy"));
+    }else{
+      fww.style.display="none";
+    }
+  }
+}
+function onCctvFwWhy(v){
+  document.getElementById("f_cctvFwWhyEtc").style.display=(v==="기타")?"block":"none";
 }
 function pipeGeomWarn(cur){
   try{
@@ -1610,11 +1662,15 @@ function openForm(id,latlng){
   var allWhy=CCTV_WHY_STD.concat(CCTV_WHY_ACC);
   document.getElementById("g_cctvFw").dataset.val=(allWhy.indexOf(fw)>=0)?fw:(fw?"기타":"");
   document.getElementById("f_cctvFwEtc").value=(fw&&allWhy.indexOf(fw)<0)?fw:"";
+  document.getElementById("g_cctvFwWhy").dataset.val=(r&&r.cctvFwWhy)||"";   // v6.0
+  document.getElementById("f_cctvFwWhyEtc").value="";
   var _rw=(r&&r.cctvRw)||"";
   var _rwList=["역주행 예정"].concat(CCTV_WHY_STD,CCTV_WHY_ACC,RW_NOGO);
   document.getElementById("g_cctvRw").dataset.val=(_rwList.indexOf(_rw)>=0)?_rw:(_rw?"기타":"");
   document.getElementById("f_cctvRwEtc").value=(_rw&&_rwList.indexOf(_rw)<0)?_rw:"";
   document.getElementById("f_cctvRwEtc").style.display=(_rw&&_rwList.indexOf(_rw)<0)?"block":"none";
+  document.getElementById("g_cctvRwWhy").dataset.val=(r&&r.cctvRwWhy)||"";   // v6.2
+  document.getElementById("f_cctvRwWhyEtc").value="";
   mkButtons("g_cctvMode",CCTV_MODES,cm,onCctvMode);
   onCctvMode(cm);
   onSurveyType(st0);
@@ -2033,6 +2089,11 @@ function saveRecord(){
       if(!_we){toast("미개폐 기타 사유를 입력하세요");return;}
       why=_we;
     }
+    if(!why&&gval("g_cctvFw")==="미개폐"){   // v6.0: CCTV쪽 미개폐 세부사유 차용
+      var _cwb=gval("g_cctvFwWhy")||"";
+      if(_cwb==="기타")_cwb=document.getElementById("f_cctvFwWhyEtc").value.trim();
+      if(_cwb)why=_cwb;
+    }
     if(!why){
       if(!confirm("미개폐 사유가 선택되지 않았습니다.\n(주정차·적재물·차량통행·민원 등)\n\n사유 없이 저장할까요?"))return;
     }
@@ -2084,11 +2145,29 @@ function saveRecord(){
     var etcw=document.getElementById("f_cctvFwEtc").value.trim();
     cFw=etcw||"기타";
   }
+  var cFwWhy="";   // v6.0: CCTV 미개폐 세부사유
+  if(cFw==="미개폐"){
+    cFwWhy=gval("g_cctvFwWhy")||"";
+    if(cFwWhy==="기타"){
+      var _fwe=document.getElementById("f_cctvFwWhyEtc").value.trim();
+      if(!_fwe){toast("CCTV 미개폐 기타 사유를 입력하세요");return;}
+      cFwWhy=_fwe;
+    }
+  }
   var cRw=gval("g_cctvRw");
   if(cRw==="기타"){
     var _re=document.getElementById("f_cctvRwEtc").value.trim();
     if(!_re){toast("역주행 기타 사유를 입력하세요");return;}
     cRw=_re;
+  }
+  var cRwWhy="";   // v6.2: 역주행 미개폐(하류맨홀) 세부사유
+  if(cRw==="미개폐"){
+    cRwWhy=gval("g_cctvRwWhy")||"";
+    if(cRwWhy==="기타"){
+      var _rwe=document.getElementById("f_cctvRwWhyEtc").value.trim();
+      if(!_rwe){toast("역주행 미개폐 기타 사유를 입력하세요");return;}
+      cRwWhy=_rwe;
+    }
   }
   function num(x){var v=parseFloat(x);return isNaN(v)?0:v;}
   if(cm==="완주"){
@@ -2227,6 +2306,8 @@ function saveRecord(){
   }
   r.surveyType=stype;r.surveyWhy=svyWhy;
   r.cctvMode=cm;r.cctvF=cF;r.cctvR=cR;r.cctvFw=cFw;r.cctvRw=cRw;
+  r.cctvFwWhy=cFwWhy||((cFw==="미개폐"&&state==="미개폐")?(why||""):"");   // v6.0: 미개폐 세부사유
+  r.cctvRwWhy=(cRw==="미개폐")?cRwWhy:"";   // v6.2: 하류맨홀 미개폐 세부사유
   // 하위호환(도면·목록용): 전 구간 조사되면 주행, 잔존·불가면 미주행
   if(cm==="미실시"){r.cctv="미실시";r.cctvWhy="";}
   else if(cm==="조사불가"){r.cctv="미주행";r.cctvWhy=cFw;}
@@ -2285,8 +2366,8 @@ function saveRecord(){
     _svy="CCTV "+cm;
     if(num(cF)>0)_svy+=" · 정 "+cF+"m";
     if(num(cR)>0)_svy+=" · 역 "+cR+"m";
-    if(cFw)_svy+=" · "+cFw;
-    if(cRw)_svy+=" · 역사유 "+cRw;
+    if(cFw)_svy+=" · "+cFw+((cFw==="미개폐"&&cFwWhy)?("("+cFwWhy+")"):"");
+    if(cRw)_svy+=" · 역사유 "+cRw+((cRw==="미개폐"&&cRwWhy)?("("+cRwWhy+")"):"");
   }else{_svy="CCTV 미실시";}
   // v5.6: 관로 전체 판정 — 사용자 절차 기준(완주/미완주·공백/조사불가/현황조사)
   var _vd,_vc;
