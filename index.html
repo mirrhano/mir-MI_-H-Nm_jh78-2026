@@ -383,8 +383,22 @@ input.small{font-size:16px;}
 </div>
 
 <!-- ══ 목록 ══ -->
+<div class="sheet" id="guideSheet">
+  <header>판단 기준표<span class="sp"></span><button onclick="closeSheet('guideSheet')">닫기</button></header>
+  <div class="body">
+    <div class="card"><div class="lbl">맨홀 상태 구분</div><div style="font-size:14px;line-height:1.6">·조사 = 덮개를 열어 내부까지 확인<br>·미개폐 = 열 수 있으나 이번에 안 엶 (사유 기록)<br>·개폐불가 = 열려고 했으나 고착·볼트 등으로 못 엶<br>·맨홀묻힘 = 포장·토사에 묻혀 덮개가 안 보임 (위치만 확정)<br>·확인불가 = 위치 자체를 특정 못 함</div></div>
+    <div class="card"><div class="lbl">덮개 재질</div><div style="font-size:14px;line-height:1.6">·CI(주철) = 주물 무늬, 묵직, 녹슨 쇳빛<br>·CS(철판) = 평평한 강판, 경첩·손잡이<br>·AC(시멘트) = 콘크리트 재질<br>·기타 = 플라스틱 등 (내용 기입)</div></div>
+    <div class="card"><div class="lbl">맨홀 규격 (내경 기준)</div><div style="font-size:14px;line-height:1.6">·소형 = Ø600~700 (사람 못 들어감)<br>·1호 = Ø900 / 2호 = Ø1200 / 3호 = Ø1500<br>·4호 = Ø1800 / 5호 = Ø2100<br>·특1~5호 = 사각(현장타설) — 애매하면 특이사항에 실측 기입<br>·암거맨홀 = 맨홀종류 AR 선택 시 자동</div></div>
+    <div class="card"><div class="lbl">인버트 / 사다리 / 낙하방지</div><div style="font-size:14px;line-height:1.6">·인버트 양호 = 물길 정형, 파손·퇴적 없음 / 불량 = 파손·마모·퇴적·물고임 / 없음 = 미시공<br>·사다리 = 발판 포함, 있으면 유 (부식 심하면 특이사항)<br>·낙하방지 = 추락방지 시설 유무</div></div>
+    <div class="card"><div class="lbl">사진 규칙</div><div style="font-size:14px;line-height:1.6">·A = 배경 (맨홀 + 주변 도로가 같이 보이게)<br>·B = 덮개 근접 (문양·글씨 판독되게)<br>·C = 내부 — <b>화면 6시 방향 = 하류</b>, 덮개 연 경우 필수 권장<br>·D~F = 이상 부위 (파손·퇴적 등)<br>·전부 가로(폰 눕혀) 촬영 — 세로는 저장 안 됨</div></div>
+    <div class="card"><div class="lbl">CCTV 조사 3방식 (관로 전체 기준)</div><div style="font-size:14px;line-height:1.6">① 정주행 완주<br>② 정주행 중단(사유) → 역주행 — 정+역=실연장이면 완주, 역주행도 중단이면 미완주<br>③ 상류 진입불가(미개폐·묻힘 등) → 역주행 전용 — 역=실연장이면 완주<br>·CCTV 자체를 못 하면 = 조사불가 (사유만)<br>·현황조사 = 주행 없이 맨홀 조사 + 관로번호 부여 (대장도 재작성)</div></div>
+    <div class="card"><div class="lbl">하류 종결 구분</div><div style="font-size:14px;line-height:1.6">·BOX접합 = 박스암거 벽면에 접속<br>·관접합 = 맨홀 없이 관끼리 접속<br>·처리장/펌프장 = 시설로 유입<br>·조사대상외 = 구역 밖 관으로 연결</div></div>
+    <div class="card" style="color:#6B7280;font-size:13px">※ 회사 확정 기준표입니다 (2026-07-12 확정). 현장 상황이 표와 다르면 사무실(노영석)로 알려주세요.</div>
+  </div>
+</div>
 <div class="sheet" id="listSheet">
   <header>조사 목록<span class="sp"></span><button onclick="openCheck()" style="background:#0E7490;margin-right:8px">사진 점검</button><button onclick="closeSheet('listSheet')">닫기</button></header>
+  <div style="padding:8px 10px 0;background:#fff"><input type="text" id="listSearch" placeholder="🔍 관로·맨홀번호 검색" autocomplete="off" oninput="filterList()" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #D1D5DB;border-radius:10px;font-size:15px"></div>
   <div id="expInfo" style="margin:10px 10px 0;padding:10px 12px;border-radius:10px;color:#fff;font-size:13px;font-weight:bold;background:#064E3B"></div>
   <div class="body" id="listBody"></div>
 </div>
@@ -402,7 +416,12 @@ input.small{font-size:16px;}
       <div class="lbl" style="margin-top:8px">처리분구(지구) — 바꾸면 그 지구로 전환됩니다 (자료는 지구별 보관)</div>
       <input type="text" id="s_area" class="small" list="areaOpts"><datalist id="areaOpts"></datalist>
       <div class="lbl" style="margin-top:8px">담당팀/조사자</div><input type="text" id="s_team" class="small">
+      <div class="lbl" style="margin-top:8px">관로번호 예시 <span style="color:#6B7280;font-weight:normal">— 입력하면 이 지구 전 작업자의 번호 형식이 잠깁니다 (비우면 잠금 없음)</span></div>
+      <input type="text" id="s_pipeEx" class="small" placeholder="예: DC-O001" autocomplete="off">
+      <div class="lbl" style="margin-top:8px">맨홀번호 예시 <span style="color:#6B7280;font-weight:normal">— 상류·하류맨홀 형식 잠금</span></div>
+      <input type="text" id="s_mhEx" class="small" placeholder="예: 2018300350" autocomplete="off">
     </div>
+    <div class="card"><button onclick="document.getElementById('guideSheet').classList.add('show')" style="width:100%;padding:13px;border:0;border-radius:10px;background:#0E7490;color:#fff;font-size:16px;font-weight:bold">판단 기준표 보기 — 덮개·규격·상태·사진·CCTV</button></div>
     <div class="card">
       <div class="lbl">VWorld 인증키 <span style="color:#6B7280;font-weight:normal">(회사에서 따로 알려준 경우에만 입력 — 평소 비워두세요)</span></div>
       <input type="text" id="s_vkey" class="small" placeholder="발급받은 키 붙여넣기">
@@ -477,8 +496,8 @@ input.small{font-size:16px;}
 
 <div id="lockPane" style="position:fixed;inset:0;z-index:9000;background:#111827;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px">
   <div style="color:#fff;font-size:19px;font-weight:800;text-align:center">하수관로 조사 정보 입력<br>미르이엔지 <span id="verTag" style="font-size:13px;color:#9CA3AF"></span></div>
-  <div style="color:#9CA3AF;font-size:13.5px">실행 암호를 입력하세요 (사무실에서 안내)</div>
-  <input type="tel" id="lockPw" style="width:240px;padding:14px;border-radius:12px;border:0;font-size:20px;text-align:center;letter-spacing:2px" placeholder="암호 입력">
+  <div style="color:#9CA3AF;font-size:13.5px">작업자 코드를 입력하세요 (사무실에서 발급)</div>
+  <input type="tel" id="lockPw" style="width:240px;padding:14px;border-radius:12px;border:0;font-size:20px;text-align:center;letter-spacing:2px" placeholder="코드 입력">
   <button onclick="lockTry()" style="width:240px;border:0;border-radius:12px;background:#2563EB;color:#fff;padding:14px;font-size:17px;font-weight:800">확인</button>
 </div>
 <div id="startPane" style="display:none;position:fixed;inset:0;z-index:2600;background:rgba(17,24,39,.97);flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:26px;text-align:center">
@@ -501,13 +520,29 @@ input.small{font-size:16px;}
 
 <script>
 "use strict";
+/* ▼▼▼ 작업자 명단 — "코드":"이름". 추가/삭제 후 이 파일을 3곳에 재배포하면 반영됩니다. 코드는 숫자만(공백·문자 X) ▼▼▼ */
+var WORKERS={
+  "01037254695":"노영석",
+  "4821":"권세진",
+  "7156":"나대관",
+  "3947":"문상열",
+  "6280":"주석호",
+  "5173":"전선홍",
+  "9024":"이현욱",
+  "2698":"정성윤",
+  "8351":"서홍석",
+  "1047":"외주 1팀",
+  "2059":"외주 2팀"
+};
+function _workerValid(nm){for(var _k in WORKERS)if(WORKERS[_k]===nm)return true;return false;}
+/* ▲▲▲ 작업자 명단 끝 ▲▲▲ */
 /* ═══════════ 상수 ═══════════ */
 var STATES=["조사","미개폐","개폐불가","맨홀묻힘","확인불가"];
 var STATE_WHY={
   "미개폐":["주정차","적재물","차량통행","민원","기타"]
 };
 var REF_KINDS=["펌프장","하수처리장","토구","현장","기타"];
-var APP_VER="v4.7";
+var APP_VER="v5.9";
 var CCTV_MODES=["미실시","완주","양쪽조사(정+역)","상류불가·역주행","조사불가"];
 var CCTV_WHY_NOGO=["장비 진입불가","차량·주정차","도로 통제불가","수위 높음","안전 위험","민원","기타"];
 var MHCHK=["이상없음","문제점 발견","개폐불가","맨홀묻힘","확인불가","미개폐","기타"];
@@ -947,7 +982,11 @@ function addRefPhotos(inp){
   files=files.slice(0,room);
   var done=0;
   files.forEach(function(fl){
-    resizeImg(fl,1600,function(blob){
+    resizeImg(fl,1600,function(blob,isPortrait){
+      if(!blob||isPortrait){
+        if(isPortrait)toast("📷 세로 사진은 제외됨 — 폰을 옆으로 눕혀 '가로'로 다시 촬영");
+        done++;if(done===files.length)renderRefPhotoRow();return;
+      }
       var key="p"+Date.now()+"_"+Math.floor(Math.random()*1e6);
       phPut(key,blob,function(ok){
         if(ok)refPhotos.push(key);
@@ -1065,8 +1104,16 @@ function syncUp(){
 function syncToggle(){
   var c=document.getElementById("c_sync");
   var up=document.getElementById("f_up");
+  try{localStorage.setItem(nsKey("mh_syncPref"),c.checked?"1":"0");}catch(e){}   // v5.7: 지구별 기억
   if(c.checked){syncUp();up.style.background="";}
-  else{up.style.background="#FEF9C3";up.focus();}   // 노란 배경 = 수동 입력 중
+  else{
+    up.style.background="#FEF9C3";
+    if(!editingId&&records.length&&(!up.value.trim()||up.value.trim()===document.getElementById("f_pipe").value.trim())){
+      var _pv=records[records.length-1];
+      if(_pv&&_pv.down&&(_pv.downType||"맨홀")==="맨홀")up.value=String(_pv.down);   // v5.7: 체인 제안
+    }
+    up.focus();
+  }   // 노란 배경 = 수동 입력 중
 }
 function incPipe(){
   var el=document.getElementById("f_pipe"),v=el.value.trim();
@@ -1100,6 +1147,24 @@ function onStatePick(v){
     ww.style.display="none";
     document.getElementById("g_stateWhy").dataset.val="";
   }
+  // v5.6: 절차 연동 — 상류맨홀 진입불가(미개폐·개폐불가·맨홀묻힘·확인불가)면
+  //        CCTV를 [상류불가·역주행]으로 자동 제안하고 '정주행을 못한 사유'에 상태를 미리 채움 (수정 가능)
+  try{
+    var _bad=(v==="미개폐"||v==="개폐불가"||v==="맨홀묻힘"||v==="확인불가");
+    var _cc=document.getElementById("cctvCard");
+    if(_bad&&gval("g_stype")!=="현황조사"&&_cc&&_cc.style.display!=="none"){
+      var _cm0=gval("g_cctvMode");
+      if(!_cm0){
+        document.getElementById("g_cctvFw").dataset.val=v;
+        mkButtons("g_cctvMode",CCTV_MODES.slice(1),"상류불가·역주행",onCctvMode);
+        onCctvMode("상류불가·역주행");
+        toast("상류맨홀 "+v+" → CCTV [상류불가·역주행] 자동 설정, 사유="+v+" (다르면 직접 바꾸세요)");
+      }else if(_cm0==="상류불가·역주행"&&!gval("g_cctvFw")){
+        document.getElementById("g_cctvFw").dataset.val=v;
+        onCctvMode(_cm0);
+      }
+    }
+  }catch(e){}
 }
 function updDaySum(){
   var el=document.getElementById("daySum");
@@ -1440,7 +1505,17 @@ function openForm(id,latlng){
   document.getElementById("f_up").value=r?(r.up||""):"";
   var cs=document.getElementById("c_sync");
   if(cs){
-    cs.checked=r?((r.up||"")===(r.pipe||"")):true;
+    if(r){cs.checked=((r.up||"")===(r.pipe||""));}
+    else{
+      // v5.7: 동기화 선택을 지구별로 기억 — 관로번호≠상류번호 체계 지구는 매번 다시 끌 필요 없음
+      var _sp=null;try{_sp=localStorage.getItem(nsKey("mh_syncPref"));}catch(e){}
+      cs.checked=(_sp===null)?true:(_sp==="1");
+      if(!cs.checked&&records.length){
+        var _pv=records[records.length-1];
+        if(_pv&&_pv.down&&(_pv.downType||"맨홀")==="맨홀")
+          document.getElementById("f_up").value=String(_pv.down);   // 체인: 직전 하류 = 이번 상류
+      }
+    }
     document.getElementById("f_up").style.background=cs.checked?"":"#FEF9C3";
   }
   document.getElementById("f_down").value=r?(r.down||""):"";
@@ -1641,8 +1716,9 @@ function slotCapture(inp){
   inp.value="";
   if(!f||pendingSlot<0)return;
   var slot=pendingSlot;pendingSlot=-1;
-  resizeImg(f,1600,function(blob){
+  resizeImg(f,1600,function(blob,isPortrait){
     if(!blob){toast("⚠ 사진 파일을 읽을 수 없습니다 — 다시 촬영해 주세요");return;}
+    if(isPortrait){toast("📷 세로 사진은 저장 안 됩니다 — 폰을 옆으로 눕혀 '가로'로 다시 촬영해 주세요");return;}
     var key="p"+Date.now()+"_"+Math.floor(Math.random()*1e6);
     phPut(key,blob,function(ok){
       if(!ok){toast("⚠ 사진 저장 실패 — 다시 촬영해 주세요");return;}
@@ -1678,7 +1754,7 @@ function resizeImg(file,maxDim,cb){
     var w=img.width,h=img.height,sc=Math.min(1,maxDim/Math.max(w,h));
     var cv=document.createElement("canvas");cv.width=Math.round(w*sc);cv.height=Math.round(h*sc);
     cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
-    cv.toBlob(function(b){cb(b||null);},"image/jpeg",0.82);
+    cv.toBlob(function(b){cb(b||null,h>w);},"image/jpeg",0.82);   // h>w = 세로(가로 강제용)
     URL.revokeObjectURL(img.src);
   };
   img.onerror=function(){URL.revokeObjectURL(img.src);cb(null);};
@@ -1688,20 +1764,21 @@ function resizeImg(file,maxDim,cb){
 /* 데이터 안전: 영구저장·용량·내보내기 추적 */
 function lockTry(){
   var v=document.getElementById("lockPw").value.replace(/\D/g,"");
-  if(v===atob("MDEwMzcyNTQ2OTU=")){
-    try{localStorage.setItem("mh_authok","1");}catch(e){}
+  var nm=WORKERS[v];
+  if(nm){
+    try{localStorage.setItem("mh_auth2","1");localStorage.setItem("mh_worker",nm);}catch(e){}
     document.getElementById("lockPane").style.display="none";
     startFlow();
   }else{
     document.getElementById("lockPw").value="";
-    toast("암호가 틀렸습니다");
+    toast("등록되지 않은 코드입니다 — 사무실에 문의하세요");
   }
 }
 function initLock(){
   try{document.getElementById("verTag").textContent=APP_VER;}catch(e){}
   try{document.getElementById("verLine").textContent=APP_VER+" · 미르이엔지 노영석 010-3725-4695";}catch(e){}
   var ok=false;
-  try{ok=localStorage.getItem("mh_authok")==="1";}catch(e){}
+  try{ok=(localStorage.getItem("mh_auth2")==="1")&&_workerValid(localStorage.getItem("mh_worker")||"");}catch(e){}
   if(ok){document.getElementById("lockPane").style.display="none";startFlow();}
   else{try{document.getElementById("lockPw").focus();}catch(e){}}
 }
@@ -1915,6 +1992,12 @@ function saveRecord(){
     toast('번호에 \\ / : * ? " < > | 문자는 쓸 수 없습니다');return;
   }
   if(down0&&down0===up){toast("상류와 하류 맨홀번호가 같습니다 — 다시 확인하세요");return;}
+  // v5.8: 지구 번호규칙 잠금 — 설정의 예시와 형식(자릿수·영문/숫자 배열)이 다르면 차단
+  var _sig8=function(s){return String(s).replace(/\d/g,"9").replace(/[A-Za-z]/g,"A");};
+  var _pex=String(settings.pipeEx||"").trim(),_mex=String(settings.mhEx||"").trim();
+  if(_pex&&_sig8(pipe)!==_sig8(_pex)){alert("⚠ 관로번호 형식이 지구 규칙과 다릅니다\n\n입력: "+pipe+"\n규칙 예시: "+_pex+"\n\n자릿수와 영문·숫자 배열이 같아야 합니다. (규칙 변경은 설정에서)");return;}
+  if(_mex&&_sig8(up)!==_sig8(_mex)){alert("⚠ 상류맨홀번호 형식이 지구 규칙과 다릅니다\n\n입력: "+up+"\n규칙 예시: "+_mex);return;}
+  if(_mex&&down0&&_sig8(down0)!==_sig8(_mex)){alert("⚠ 하류맨홀번호 형식이 지구 규칙과 다릅니다\n\n입력: "+down0+"\n규칙 예시: "+_mex);return;}
   var dupRec=null;
   records.some(function(x){if(x.up===up&&x.id!==editingId){dupRec=x;return true;}return false;});
   if(dupRec){
@@ -1926,6 +2009,11 @@ function saveRecord(){
   }
   var pdup=records.some(function(r){return r.pipe===pipe&&r.id!==editingId;});
   if(pdup){toast("이미 등록된 관로번호입니다: "+pipe);return;}
+  // v5.5: 콤마→소수점 정규화 및 연장·깊이 선행 계산 — CCTV 완주판정(정+역=실연장)이 실연장을 쓰므로 값 캡처 전에 수행
+  ["f_depth","f_plen","f_mlen","f_cctvF","f_cctvR"].forEach(function(fid){var _el=document.getElementById(fid);if(_el&&_el.value.indexOf(",")>=0)_el.value=_el.value.replace(/,/g,".");});
+  var pl=(function(x){var v=parseFloat(x);return isNaN(v)?0:v;})(document.getElementById("f_plen").value);
+  var ml=(function(x){var v=parseFloat(x);return isNaN(v)?0:v;})(document.getElementById("f_mlen").value);
+  var dep=(function(x){var v=parseFloat(x);return isNaN(v)?0:v;})(document.getElementById("f_depth").value);
   // 필수 사진: A(배경)·B(맨홀덮개) — 상태 무관 기본 2장
   if((!formPhotos[0]||!formPhotos[1])&&!_upOwner(up,editingId)){
     var miss=[];
@@ -2023,18 +2111,17 @@ function saveRecord(){
     if(!cFw){toast("정주행 불가 사유를 선택하세요");return;}
     if(num(cR)<=0){toast("역주행 연장(m)을 입력하세요");return;}
     cF="";
+    // v5.6: 역주행 전용도 관로 전체 기준 — 실연장에 못 미치면 사유 필요(방식② 공백 검사와 대칭)
+    if(pl>0&&!cRw&&(pl-num(cR))>0.05){
+      toast("역주행 "+num(cR).toFixed(1)+"m — 실연장 "+pl.toFixed(1)+"m에 "+(pl-num(cR)).toFixed(1)+"m 부족. 끝(상류)까지 갔으면 값 확인, 중간에 멈췄으면 [역주행을 못 했거나 멈춘 이유] 선택");
+      return;
+    }
+    if(pl>0&&Math.abs(pl-num(cR))<=0.05&&cRw){cRw="";toast("역주행 = 실연장 → 관로 완주 처리 (사유는 기록하지 않습니다)");}
   }else if(cm==="조사불가"){
     if(!cFw){toast("조사불가 사유를 선택하세요");return;}
     cF="";cR="";cRw="";
   }else{cF="";cR="";cFw="";cRw="";}
-  // ── 검증 (aaa.py 규칙 이식) ──
-  ["f_depth","f_plen","f_mlen","f_cctvF","f_cctvR"].forEach(function(fid){
-    var el=document.getElementById(fid);
-    if(el&&el.value.indexOf(",")>=0)el.value=el.value.replace(/,/g,".");
-  });
-  var pl=num(document.getElementById("f_plen").value);
-  var ml=num(document.getElementById("f_mlen").value);
-  var dep=num(document.getElementById("f_depth").value);
+  // ── 검증 (aaa.py 규칙 이식) — 콤마 정규화·pl/ml/dep 계산은 상단에서 선행(v5.5) ──
   if(pl>=1000){toast("실연장은 1000m 미만으로 입력해야 합니다");return;}
   if(ml>=1000){toast("도면연장은 1000m 미만으로 입력해야 합니다");return;}
   if(num(cF)>=1000||num(cR)>=1000){toast("주행연장은 1000m 미만으로 입력해야 합니다");return;}
@@ -2060,6 +2147,14 @@ function saveRecord(){
   if(pt==="기타"&&!document.getElementById("f_ptypeEtc").value.trim())reqMiss.push("관종(기타 내용)");
   if(!psize)reqMiss.push("관경");
   if(stype!=="현황조사"&&cm&&cm!=="조사불가"&&(num(cF)+num(cR))<=0)reqMiss.push("주행연장(정/역)");
+  // v5.5: DB 필수 항목 — 비어 있으면 저장 차단
+  if(state==="조사"&&!(dep>0))reqMiss.push("맨홀깊이(m) — 상태 '조사'는 깊이 필수");
+  if(state!=="맨홀묻힘"&&state!=="확인불가"&&!gval("g_cover"))reqMiss.push("덮개 재질(CI·CS·AC 등)");
+  if(state==="조사"){
+    if(!gval("g_invert"))reqMiss.push("인버트(유/무)");
+    if(!gval("g_ladder"))reqMiss.push("사다리(유/무)");
+    if(!gval("g_fall"))reqMiss.push("낙하방지(유/무)");
+  }
   // 번호 패턴 검사: 지구 내 최빈 자릿수와 다르면 확인
   function lenMode(arr){
     var cnt={};arr.forEach(function(x){if(x)cnt[x.length]=(cnt[x.length]||0)+1;});
@@ -2107,6 +2202,14 @@ function saveRecord(){
   if(cm==="상류불가·역주행"&&state!=="조사"&&cFw==="물수위"){
     if(!confirm("사유가 물수위(장비만 못 넣음)인데 맨홀 상태가 '"+state+"'입니다.\n맨홀 자체는 열어 조사할 수 있지 않았나요?"))return;
   }
+  // v5.6: 상태↔CCTV 시나리오 모순 확인 — 차단 아님, 한 번 더 확인만
+  var _stBad=(state==="미개폐"||state==="개폐불가"||state==="맨홀묻힘"||state==="확인불가");
+  if(_stBad&&(cm==="완주"||cm==="양쪽조사(정+역)")){
+    if(!confirm("상류맨홀 상태가 '"+state+"'(상류 진입 불가)인데 CCTV는 정주행 조사('"+cm+"')입니다.\n실제 상류에서 진입해 촬영했으면 [확인], 아니면 [취소] 후 [상류불가·역주행]으로 바꾸세요."))return;
+  }
+  if(state==="조사"&&cm==="상류불가·역주행"&&(cFw==="미개폐"||cFw==="개폐불가"||cFw==="맨홀묻힘"||cFw==="확인불가")){
+    if(!confirm("상류맨홀은 '조사'(열어서 조사함)인데 정주행을 못한 사유가 '"+cFw+"'입니다.\n서로 맞지 않습니다 — 이대로 저장할까요?"))return;
+  }
   if(psize&&psize!=="-"){
     if(pt==="BOX"||pt==="RCB"){
       if(!/^\d+(\.\d+)?\*\d+(\.\d+)?$/.test(psize.replace(/\s/g,""))){
@@ -2149,6 +2252,7 @@ function saveRecord(){
   }
   r.photos=formPhotos.slice();
   var _commit=function(){
+  if(!r.worker)r.worker=localStorage.getItem("mh_worker")||"";
   if(!editingId)records.push(r);
   lastDefaults={drain:r.drain,cover:r.cover,mhType:r.mhType,mhSize:r.mhSize,
                 pipeType:r.pipeType,pipeSize:r.pipeSize,invert:r.invert,ladder:r.ladder,fall:r.fall,
@@ -2184,10 +2288,31 @@ function saveRecord(){
     if(cFw)_svy+=" · "+cFw;
     if(cRw)_svy+=" · 역사유 "+cRw;
   }else{_svy="CCTV 미실시";}
+  // v5.6: 관로 전체 판정 — 사용자 절차 기준(완주/미완주·공백/조사불가/현황조사)
+  var _vd,_vc;
+  if(stype==="현황조사"){_vd="현황조사";_vc="#2563EB";}
+  else if(cm==="조사불가"){_vd="조사불가";_vc="#6B7280";}
+  else if(cRw){_vd="미완주 — "+cRw;_vc="#DC2626";
+    if(pl>0){var _blk=pl-(num(cF)+num(cR));if(_blk>0.05)_vd+=" · 공백 "+_blk.toFixed(1)+"m";}
+  }else{_vd="완주";_vc="#059669";}
+  // v5.5: 지도 직선거리 ↔ 실측연장 대조 — 경고만(곡관·경유는 실측이 더 긴 게 정상), 저장은 막지 않음
+  var _dwarn="";
+  try{
+    if(downType==="맨홀"&&down0&&pl>0&&r.lat&&r.lng){
+      var _dnRec=null;
+      records.some(function(x){if(String(x.up)===String(down0)&&x.id!==(editingId||"")&&x.lat&&x.lng){_dnRec=x;return true;}return false;});
+      if(_dnRec){
+        var _dd=distM(r.lat,r.lng,_dnRec.lat,_dnRec.lng);
+        if(Math.abs(_dd-pl)>Math.max(3,pl*0.10)){
+          _dwarn='<div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;padding:9px 12px;margin-bottom:8px;font-size:14px;color:#92400E"><b>⚠ 지도 직선거리 '+_dd.toFixed(1)+'m ↔ 실측 '+pl.toFixed(1)+'m</b><br>곡관·경유면 실측이 더 긴 게 정상입니다. 맨홀 점 위치와 실측값만 한 번 더 확인하세요.</div>';
+        }
+      }
+    }
+  }catch(e){}
   var _rs="display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #F3F4F6;font-size:15px";
   var _lb="color:#6B7280;font-weight:bold;white-space:nowrap";
   var _vl="color:#111827;font-weight:bold;text-align:right";
-  var _html=
+  var _html=_dwarn+
     '<div style="background:#ECFDF5;border:1px solid #A7F3D0;border-radius:10px;padding:9px 12px;margin-bottom:8px">'+
       '<div style="font-size:12px;color:#047857;font-weight:bold">관로번호</div>'+
       '<div style="font-size:23px;font-weight:bold;color:#065F46;letter-spacing:1px">'+(pipe||'<b style="color:#DC2626">미입력</b>')+'</div></div>'+
@@ -2197,6 +2322,7 @@ function saveRecord(){
     '<div style="'+_rs+'"><span style="'+_lb+'">깊이·실연장·도면</span><span style="'+_vl+'">'+(dep||"-")+' · '+(pl||"-")+' · '+(ml||"-")+' m</span></div>'+
     '<div style="'+_rs+'"><span style="'+_lb+'">관종·관경</span><span style="'+_vl+'">'+(pt||"-")+' · '+(psize||"-")+'</span></div>'+
     '<div style="'+_rs+'"><span style="'+_lb+'">조사</span><span style="'+_vl+'">'+_svy+'</span></div>'+
+    '<div style="'+_rs+'"><span style="'+_lb+'">판정</span><span style="'+_vl+';color:'+_vc+'">'+_vd+'</span></div>'+
     '<div style="'+_rs+'"><span style="'+_lb+'">좌표</span><span style="'+_vl+';font-size:12px">'+((r.lat!=null&&!isNaN(r.lat))?r.lat.toFixed(6):"-")+', '+((r.lng!=null&&!isNaN(r.lng))?r.lng.toFixed(6):"-")+'</span></div>'+
     '<div style="'+_rs+';border-bottom:0"><span style="'+_lb+'">사진</span><span style="'+_vl+'">'+_pc+'장</span></div>';
   openSaveReview(_html,_commit);
@@ -2211,6 +2337,14 @@ function delRecord(){
 }
 
 /* ═══════════ 목록 ═══════════ */
+function filterList(){   // v5.7: 목록 검색 — 관로·상류·하류번호 부분일치
+  var el=document.getElementById("listSearch");
+  var q=(el&&el.value?el.value:"").trim().toLowerCase();
+  var items=document.querySelectorAll("#listBody .item");
+  Array.prototype.forEach.call(items,function(d){
+    d.style.display=(!q||d.textContent.toLowerCase().indexOf(q)>=0)?"":"none";
+  });
+}
 function openList(){
   updateExpInfo();
   var body=document.getElementById("listBody");body.innerHTML="";
@@ -2252,6 +2386,7 @@ function openList(){
       body.appendChild(d);
     });
   }
+  filterList();   // v5.7: 검색어 유지 적용
   document.getElementById("listSheet").classList.add("show");
 }
 
@@ -2350,6 +2485,8 @@ function openSettings(){
   document.getElementById("s_area").value=settings.area||"";
   document.getElementById("s_team").value=settings.team||"";
   document.getElementById("s_vkey").value=settings.vkey||"";
+  document.getElementById("s_pipeEx").value=settings.pipeEx||"";
+  document.getElementById("s_mhEx").value=settings.mhEx||"";
   mkButtons("g_hybrid",YN,settings.hybrid||"유");
   document.getElementById("setSheet").classList.add("show");
 }
@@ -2362,6 +2499,8 @@ function saveSettings(){
   document.getElementById("s_area").value=settings.area;
   settings.team=document.getElementById("s_team").value.trim();
   settings.vkey=document.getElementById("s_vkey").value.trim();
+  settings.pipeEx=document.getElementById("s_pipeEx").value.trim();   // v5.8: 번호 형식 잠금 예시
+  settings.mhEx=document.getElementById("s_mhEx").value.trim();
   settings.hybrid=gval("g_hybrid")||"유";
   var newArea=(settings.area||"").trim()||"현장";
   persistSet();applyTitle();baseLayers();
@@ -2421,7 +2560,7 @@ function exportZip(){
   refs.forEach(function(f){(f.photos||[]).forEach(function(k){if(k)_nph++;});});
   toast(_nph>400?("사진 "+_nph+"장 — 파일이 커서 시간이 걸립니다. 화면을 끄지 마세요"):"zip 만드는 중… 사진이 많으면 몇 초 걸립니다");
   var zip=new JSZip();
-  var out={version:"mh1",exported:new Date().toISOString(),settings:settings,records:[],refs:[]};
+  var out={version:"mh1",appVer:APP_VER,exported:new Date().toISOString(),settings:settings,records:[],refs:[]};
   var csv="﻿NO,조사일자,관로번호,상류맨홀번호,하류맨홀번호,하류구분,위도,경도,상태,점검결과,깊이,실연장,도면연장,배수방식,덮개,맨홀종류,맨홀크기,관종,관경,인버트,사다리,낙하방지,볼트형식,볼트구멍불량,압송관로,주소,특이사항,사진수,조사유형,현황조사사유,CCTV모드,정주행m,정주행사유,역주행m,역주행사유,CCTV특이사항,대장구분,GPS정확도m,GPS거리m\n";
   var tasks=[];
   records.forEach(function(r,i){
@@ -2501,7 +2640,7 @@ function exportZip(){
       var d=new Date(),ds=d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate());
       var a=document.createElement("a");
       a.href=URL.createObjectURL(blob);
-      a.download="맨홀조사_"+(settings.area||"현장")+"_"+ds+".zip";
+      a.download="맨홀조사_"+(settings.area||"현장")+"_"+String(localStorage.getItem("mh_worker")||"작업자").replace(/[\\\/:*?"<>|\s]/g,"")+"_"+ds+".zip";
       document.body.appendChild(a);a.click();a.remove();
       markExported();
       toast("내보내기 완료 ("+records.length+"건)");
@@ -2540,6 +2679,8 @@ function _importData(txt){
         settings.area=_sa;
         if(st.prj)settings.prj=st.prj;
         if(st.team&&!settings.team)settings.team=st.team;
+        if(st.pipeEx)settings.pipeEx=st.pipeEx;   // v5.8: 번호규칙도 전파
+        if(st.mhEx)settings.mhEx=st.mhEx;
         persistSet();applyTitle();
         try{localStorage.setItem("mh_meta::"+_sa,
             JSON.stringify({prj:settings.prj||"",team:settings.team||"",t:Date.now()}));}catch(e){}
@@ -2585,6 +2726,18 @@ function toast(msg){
   toastTimer=setTimeout(function(){t.style.display="none";},2600);
 }
 window.addEventListener("beforeunload",function(){persist();});
+// v5.5: 모든 텍스트 입력 선행 공백 차단 — 처음을 띄어쓰기로 시작할 수 없음 (커서 위치 보존)
+document.addEventListener("input",function(e){
+  var el=e.target;
+  if(!el||typeof el.value!=="string"||!el.value)return;
+  var ok=(el.tagName==="TEXTAREA")||(el.tagName==="INPUT"&&/^(text|tel|search|email|url)$/i.test(el.type||"text"));
+  if(!ok)return;
+  if(/^[\s\u00A0]/.test(el.value)){
+    var st=el.selectionStart,m=el.value.match(/^[\s\u00A0]+/),cut=m?m[0].length:0;
+    el.value=el.value.replace(/^[\s\u00A0]+/,"");
+    try{if(st!=null)el.setSelectionRange(Math.max(0,st-cut),Math.max(0,st-cut));}catch(_e){}
+  }
+},true);
 
 document.getElementById("formBody").addEventListener("input",foldSummary);
 
