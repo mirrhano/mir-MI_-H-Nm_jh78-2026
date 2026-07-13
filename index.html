@@ -552,7 +552,7 @@ var STATE_WHY={
   "미개폐":["주정차","적재물","차량통행","민원","기타"]
 };
 var REF_KINDS=["펌프장","하수처리장","토구","현장","기타"];
-var APP_VER="v6.2";
+var APP_VER="v6.4";
 var CCTV_MODES=["미실시","완주","양쪽조사(정+역)","상류불가·역주행","조사불가"];
 var CCTV_WHY_NOGO=["장비 진입불가","차량·주정차","도로 통제불가","수위 높음","안전 위험","민원","기타"];
 var MHCHK=["이상없음","문제점 발견","개폐불가","맨홀묻힘","확인불가","미개폐","기타"];
@@ -892,19 +892,65 @@ function gotoGps(){
 }
 
 /* ═══════════ 십자선 추가 모드 ═══════════ */
+/* v6.4: 배치 예측 가이드 — 직전 저장 맨홀의 실연장으로 다음 맨홀 위치 예측(원=거리 확실, 노란점=직진 가정 예상점) */
+var _guideA=null,_guideLy=null;
+function showPlaceGuide(){
+  _guideA=null;
+  try{
+    if(movingId)return;   // 위치 이동 중엔 가이드 없음
+    var best=null;
+    records.forEach(function(r){
+      if(!r||!r.lat||!r.lng)return;
+      var pl=parseFloat(String(r.pipeLen||"").replace(/,/g,""));
+      if(!(pl>0))return;
+      if((r.downType||"맨홀")!=="맨홀")return;   // 종결 관로는 다음 맨홀 없음
+      if(!best||String(r.updatedAt||"")>String(best.updatedAt||""))best=r;
+    });
+    if(!best)return;
+    var dn=String(best.down||"").trim();
+    if(dn){for(var i=0;i<records.length;i++){if(String(records[i].up||"").trim()===dn)return;}}   // 하류가 이미 찍혔으면 불필요
+    var pl0=parseFloat(String(best.pipeLen).replace(/,/g,""));
+    _guideA={lat:best.lat,lng:best.lng,plen:pl0,up:String(best.up||"")};
+    _guideLy=L.layerGroup();
+    _guideLy.addLayer(L.circle([best.lat,best.lng],{radius:pl0,color:"#22D3EE",weight:1.5,dashArray:"6 6",fill:false,opacity:.9,interactive:false}));
+    _guideLy.addLayer(L.circleMarker([best.lat,best.lng],{radius:4,color:"#22D3EE",weight:2,fillColor:"#0E7490",fillOpacity:1,interactive:false}));
+    var prev=null;   // 직전 관로(그 하류=best 상류) → 진행방향 직진 가정 예상점
+    records.forEach(function(r){
+      if(r&&r.lat&&r.lng&&r.id!==best.id&&String(r.down||"").trim()===String(best.up||"").trim()){
+        if(!prev||String(r.updatedAt||"")>String(prev.updatedAt||""))prev=r;
+      }
+    });
+    if(prev){
+      var d2r=Math.PI/180;
+      var br=Math.atan2((best.lng-prev.lng)*Math.cos(best.lat*d2r),(best.lat-prev.lat));
+      var exLat=best.lat+pl0*Math.cos(br)/111320;
+      var exLng=best.lng+pl0*Math.sin(br)/(111320*Math.cos(best.lat*d2r));
+      _guideLy.addLayer(L.polyline([[best.lat,best.lng],[exLat,exLng]],{color:"#FDE047",weight:1,dashArray:"2 6",opacity:.75,interactive:false}));
+      _guideLy.addLayer(L.circleMarker([exLat,exLng],{radius:6,color:"#FDE047",weight:2,fill:false,interactive:false}));
+    }
+    _guideLy.addTo(map);
+    toast("점선 원 = 직전 맨홀에서 실연장 "+pl0.toFixed(1)+"m 거리 (다음 맨홀 예상 범위)");
+  }catch(e){_guideA=null;}
+}
+function hidePlaceGuide(){
+  try{if(_guideLy)map.removeLayer(_guideLy);}catch(e){}
+  _guideLy=null;_guideA=null;
+}
 var crossMode=false;
 function startCross(){crossMode=true;document.getElementById("cross").style.display="block";
   document.getElementById("crossbar").style.display="flex";
   document.getElementById("crossRead").style.display="block";
   document.getElementById("nudge").style.display="grid";
   document.getElementById("btnAdd").style.display="none";
+  showPlaceGuide();   // v6.4
   updateCrossReadout();
   toast("지도를 움직여 십자선을 맨홀에 맞추고 → ▲▼◀▶로 0.1m씩 미세조정");}
 function endCross(){crossMode=false;document.getElementById("cross").style.display="none";
   document.getElementById("crossbar").style.display="none";
   document.getElementById("crossRead").style.display="none";
   document.getElementById("nudge").style.display="none";
-  document.getElementById("btnAdd").style.display="block";}
+  document.getElementById("btnAdd").style.display="block";
+  hidePlaceGuide();}   // v6.4
 /* ── 미세조정: 화살표로 정확히 미터 단위 이동 ── */
 var nudgeStep=0.1, NUDGE_STEPS=[0.1,0.5,1.0];
 function cycleStep(){
@@ -926,9 +972,16 @@ function updateCrossReadout(){
   var c=map.getCenter(), z=map.getZoom(), mpp=mppAt(c.lat,z);
   var denom=Math.round(mpp/0.00028);          // 화면 축척 근사(OGC 표준 픽셀 0.28mm)
   var warn=denom>2000;                         // 1:2000보다 성기면 경고(더 확대)
+  var g="";
+  if(_guideA){   // v6.4: 직전 맨홀→십자선 거리 vs 실연장
+    var dd=distM(_guideA.lat,_guideA.lng,c.lat,c.lng);
+    var df=Math.round((dd-_guideA.plen)*10)/10;   // -0.0 방지
+    var gok=Math.abs(df)<=Math.max(3,_guideA.plen*0.10);
+    g="<br><span class='sc"+(gok?"":" warn")+"'>"+(_guideA.up||"직전맨홀")+"에서 "+dd.toFixed(1)+"m · 실연장 "+_guideA.plen.toFixed(1)+"m · 차 "+(df>=0?"+":"")+df.toFixed(1)+"m</span>";
+  }
   el.innerHTML="위도 "+c.lat.toFixed(6)+"  경도 "+c.lng.toFixed(6)+
     "<br><span class='sc"+(warn?" warn":"")+"'>약 1:"+denom.toLocaleString()+
-    " · "+mpp.toFixed(2)+"m/픽셀"+(warn?" · 더 확대하세요":"")+"</span>";
+    " · "+mpp.toFixed(2)+"m/픽셀"+(warn?" · 더 확대하세요":"")+"</span>"+g;
 }
 function addHere(){
   if(map.getZoom()<18&&!confirm("지도를 더 확대한 뒤(맨홀·건물 모서리가 또렷할 때) 찍으면 정확합니다.\n지금 축척에서는 위치 오차가 커질 수 있습니다.\n\n이대로 추가할까요?"))return;
