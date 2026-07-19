@@ -162,6 +162,10 @@ input.small{font-size:16px;}
   <button id="btnCancelCross" onclick="endCross()">취소</button>
 </div>
 <div id="crossRead"></div>
+<div id="draftBar" style="position:fixed;top:54px;left:10px;right:10px;z-index:850;display:none;background:#B45309;color:#fff;border-radius:10px;padding:11px 12px;font-weight:bold;font-size:14px;box-shadow:0 3px 10px rgba(0,0,0,.35)">
+  <span id="draftBarTxt" onclick="resumeDraft()" style="cursor:pointer"></span>
+  <span onclick="discardDraft()" style="float:right;padding:0 8px;font-size:16px">✕</span>
+</div>
 <div id="nudge">
   <span class="sp"></span><button onclick="nudge(0,1)">▲</button><span class="sp"></span>
   <button onclick="nudge(-1,0)">◀</button><button class="mid" id="nudgeStepBtn" onclick="cycleStep()">0.1m</button><button onclick="nudge(1,0)">▶</button>
@@ -175,7 +179,8 @@ input.small{font-size:16px;}
     <div id="saveReviewBody" style="padding:14px 16px"></div>
     <div style="display:flex;gap:10px;padding:4px 16px 16px">
       <button onclick="closeSaveReview()" style="flex:1;border:2px solid #9CA3AF;background:#fff;color:#374151;border-radius:12px;padding:15px 8px;font-size:16px;font-weight:bold">✎ 수정</button>
-      <button id="btnSaveConfirm" style="flex:2;border:0;background:#059669;color:#fff;border-radius:12px;padding:15px 8px;font-size:17px;font-weight:bold">✔ 저장 확정</button>
+      <button id="btnSaveConfirm" style="flex:1.6;border:0;background:#059669;color:#fff;border-radius:12px;padding:15px 6px;font-size:16px;font-weight:bold">✔ 저장</button>
+      <button id="btnSaveNext" style="flex:1.6;border:0;background:#0E7490;color:#fff;border-radius:12px;padding:15px 6px;font-size:16px;font-weight:bold">✔ 저장+다음 →</button>
     </div>
   </div>
 </div>
@@ -238,7 +243,7 @@ input.small{font-size:16px;}
         <div><div class="lbl">하류 구분 <span style="color:#6B7280;font-weight:normal">— 물이 가는 곳이 맨홀이면 [맨홀]</span></div>
           <div style="font-size:11.5px;color:#6B7280;margin:1px 0 4px">BOX접합=암거(사각수로)에 붙음 / 관접합=관끼리 바로 연결 / 처리장·펌프장=시설로 들어감 / 조사대상외=우리 조사구역 아님</div>
           <div class="btns c4" id="g_downType" style="margin-bottom:6px"></div>
-          <input type="text" id="f_down" autocomplete="off" placeholder="하류맨홀번호" list="downOpts">
+          <input type="text" id="f_down" autocomplete="off" placeholder="하류맨홀번호" list="downOpts" style="font-size:20px;font-weight:700;padding:13px 10px;letter-spacing:.5px">
           <datalist id="downOpts"></datalist></div>
       </div>
     </div>
@@ -276,7 +281,7 @@ input.small{font-size:16px;}
       <div id="cctvBody" style="display:none;margin-top:8px">
         <div class="row">
           <div id="wrapF"><div class="lbl" id="lblF">정주행 연장(m)</div>
-            <input type="text" id="f_cctvF" inputmode="decimal" class="small" placeholder="예: 25.5" oninput="updPipeSum()"></div>
+            <input type="text" id="f_cctvF" inputmode="decimal" class="small" placeholder="예: 25.5" oninput="updPipeSum()" onchange="autoPlen()"></div>
           <div id="wrapR"><div class="lbl">역주행 촬영 길이(m) <span style="color:#6B7280;font-weight:normal">하류→상류</span></div>
             <input type="text" id="f_cctvR" inputmode="decimal" class="small" placeholder="예: 23.0" oninput="updPipeSum()"></div>
         </div>
@@ -361,6 +366,7 @@ input.small{font-size:16px;}
   <div class="save-bar">
     <button id="btnCloseForm" onclick="closeForm()">닫기</button>
     <button id="btnDelete" onclick="delRecord()">삭제</button>
+    <button id="btnDraft" onclick="saveDraft()" style="background:#B45309;flex:1.1">임시저장</button>
     <button id="btnSave" onclick="saveRecord()">저장</button>
   </div>
 </div>
@@ -409,6 +415,7 @@ input.small{font-size:16px;}
 <div class="sheet" id="listSheet">
   <header>조사 목록<span class="sp"></span><button onclick="openCheck()" style="background:#0E7490;margin-right:8px">사진 점검</button><button onclick="closeSheet('listSheet')">닫기</button></header>
   <div style="padding:8px 10px 0;background:#fff"><input type="text" id="listSearch" placeholder="🔍 관로·맨홀번호 검색" autocomplete="off" oninput="filterList()" style="width:100%;box-sizing:border-box;padding:10px;border:1px solid #D1D5DB;border-radius:10px;font-size:15px"></div>
+  <div id="listSum" style="margin:8px 10px 0;padding:9px 12px;border-radius:10px;background:#111827;color:#E5E7EB;font-size:12.5px;font-weight:bold;line-height:1.6"></div>
   <div id="expInfo" style="margin:10px 10px 0;padding:10px 12px;border-radius:10px;color:#fff;font-size:13px;font-weight:bold;background:#064E3B"></div>
   <div class="body" id="listBody"></div>
 </div>
@@ -432,6 +439,15 @@ input.small{font-size:16px;}
       <input type="text" id="s_mhEx" class="small" placeholder="예: 2018300350" autocomplete="off">
     </div>
     <div class="card"><button onclick="document.getElementById('guideSheet').classList.add('show')" style="width:100%;padding:13px;border:0;border-radius:10px;background:#0E7490;color:#fff;font-size:16px;font-weight:bold">판단 기준표 보기 — 덮개·규격·상태·사진·CCTV</button></div>
+    <div class="card">
+      <div class="lbl">오프라인 위성지도 <span style="color:#6B7280;font-weight:normal">— LTE 안 터지는 현장 대비, 숙소 와이파이에서 미리받기</span></div>
+      <div style="font-size:12.5px;color:#6B7280;margin:2px 0 6px">지도를 받을 구역이 화면에 꽉 차게 보이도록 이동·확대한 뒤 누르세요 (z16~19 저장)</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="closeSheet('setSheet');setTimeout(prefetchTiles,300)" style="flex:2;border:0;border-radius:10px;background:#1D4ED8;color:#fff;padding:12px;font-size:15px;font-weight:bold">현재 화면 구역 미리받기</button>
+        <button onclick="tcClearUI()" style="flex:1;border:1.5px solid #9CA3AF;border-radius:10px;background:#fff;color:#374151;padding:12px;font-size:14px">비우기</button>
+      </div>
+      <div id="tcState" style="margin-top:6px;font-size:12.5px;color:#0E7490;font-weight:bold">저장된 지도 확인 중…</div>
+    </div>
     <div class="card">
       <div class="lbl">VWorld 인증키 <span style="color:#6B7280;font-weight:normal">(회사에서 따로 알려준 경우에만 입력 — 평소 비워두세요)</span></div>
       <input type="text" id="s_vkey" class="small" placeholder="발급받은 키 붙여넣기">
@@ -552,7 +568,7 @@ var STATE_WHY={
   "미개폐":["주정차","적재물","차량통행","민원","기타"]
 };
 var REF_KINDS=["펌프장","하수처리장","토구","현장","기타"];
-var APP_VER="v6.4";
+var APP_VER="v7.2";
 var CCTV_MODES=["미실시","완주","양쪽조사(정+역)","상류불가·역주행","조사불가"];
 var CCTV_WHY_NOGO=["장비 진입불가","차량·주정차","도로 통제불가","수위 높음","안전 위험","민원","기타"];
 var MHCHK=["이상없음","문제점 발견","개폐불가","맨홀묻힘","확인불가","미개폐","기타"];
@@ -657,6 +673,145 @@ function phGet(key,cb){
 }
 function phDel(key){if(!idb)return;try{idb.transaction("ph","readwrite").objectStore("ph").delete(key);}catch(e){}}
 
+/* ═══ v6.7: 오프라인 위성지도 — 타일 캐시(별도 IDB mh_tiles) ═══
+   ·자연 캐시: 온라인에서 본 타일은 자동 저장(캐시에 없을 때만, HTTP캐시 재활용이라 데이터 이중사용 거의 없음)
+   ·미리받기: 현재 화면 구역 z16~19 일괄 저장  ·오프라인/수신실패 시 캐시에서 표시
+   ·지도서버가 CORS 저장을 막으면 자연·미리받기만 조용히 실패(표시는 정상) */
+var _tdb=null;
+(function(){try{
+  var rq=indexedDB.open("mh_tiles",1);
+  rq.onupgradeneeded=function(e){var d=e.target.result;if(!d.objectStoreNames.contains("t"))d.createObjectStore("t");};
+  rq.onsuccess=function(){_tdb=rq.result;};
+}catch(e){}})();
+function tcGet(key,cb){
+  if(!_tdb)return cb(null);
+  try{var q=_tdb.transaction("t").objectStore("t").get(key);
+    q.onsuccess=function(){cb(q.result||null);};q.onerror=function(){cb(null);};
+  }catch(e){cb(null);}
+}
+function tcPut(key,blob){
+  if(!_tdb||!blob)return;
+  try{_tdb.transaction("t","readwrite").objectStore("t").put({b:blob,ts:Date.now()},key);}catch(e){}
+}
+function tcStats(cb){
+  if(!_tdb)return cb(0,0);
+  try{
+    var n=0,sz=0,cr=_tdb.transaction("t").objectStore("t").openCursor();
+    cr.onsuccess=function(e){var c=e.target.result;
+      if(c){n++;try{sz+=(c.value&&c.value.b&&c.value.b.size)||0;}catch(x){}c.continue();}
+      else cb(n,sz);};
+    cr.onerror=function(){cb(0,0);};
+  }catch(e){cb(0,0);}
+}
+function tcClear(cb){
+  if(!_tdb)return cb&&cb();
+  try{var q=_tdb.transaction("t","readwrite").objectStore("t").clear();
+    q.onsuccess=function(){cb&&cb();};q.onerror=function(){cb&&cb();};
+  }catch(e){cb&&cb();}
+}
+var CachedTile=L.TileLayer.extend({
+  createTile:function(coords,done){
+    var img=document.createElement("img");
+    img.alt="";
+    var url=this.getTileUrl(coords), tried=false, self=this;
+    img.onload=function(){done(null,img);};
+    img.onerror=function(){
+      if(tried){done(new Error("tile"),img);return;}
+      tried=true;
+      tcGet(url,function(rec){
+        if(rec&&rec.b){try{img.src=URL.createObjectURL(rec.b);return;}catch(e){}}
+        done(new Error("tile"),img);
+      });
+    };
+    if(navigator.onLine===false){
+      tried=true;
+      tcGet(url,function(rec){
+        if(rec&&rec.b){try{img.src=URL.createObjectURL(rec.b);return;}catch(e){}}
+        img.src=url;
+      });
+    }else{
+      img.src=url;
+      self._bgSave(url);
+    }
+    return img;
+  },
+  _bgSave:function(url){
+    if(!this._sv)this._sv={};
+    if(this._sv[url])return;
+    this._sv[url]=1;
+    tcGet(url,function(rec){
+      if(rec)return;
+      try{fetch(url,{mode:"cors"}).then(function(r){return (r&&r.ok)?r.blob():null;})
+        .then(function(b){if(b&&b.size>300)tcPut(url,b);}).catch(function(){});}catch(e){}
+    });
+  }
+});
+function tileUrlFor(z,x,y,hyb){
+  var key=vkey();
+  if(key)return "https://api.vworld.kr/req/wmts/1.0.0/"+key+"/"+(hyb?"Hybrid":"Satellite")+"/"+z+"/"+y+"/"+x+(hyb?".png":".jpeg");
+  return hyb?null:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/"+z+"/"+y+"/"+x;
+}
+function tilesInBounds(latS,lngW,latN,lngE,z){
+  function tx(lng){return Math.floor((lng+180)/360*Math.pow(2,z));}
+  function ty(lat){var r=lat*Math.PI/180;
+    return Math.floor((1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z));}
+  var x0=tx(lngW),x1=tx(lngE),y0=ty(latN),y1=ty(latS),out=[];
+  for(var x=x0;x<=x1;x++)for(var y=y0;y<=y1;y++)out.push([z,x,y]);
+  return out;
+}
+var _pfBusy=false;
+function prefetchTiles(){
+  if(_pfBusy){toast("미리받기 진행 중입니다");return;}
+  if(navigator.onLine===false){toast("오프라인 상태입니다 — 와이파이 연결 후 받으세요");return;}
+  var b=map.getBounds();
+  var list=[];
+  [16,17,18,19].forEach(function(z){
+    list=list.concat(tilesInBounds(b.getSouth(),b.getWest(),b.getNorth(),b.getEast(),z));
+  });
+  var wantHyb=!!vkey()&&settings.hybrid!=="무";
+  var total=list.length*(wantHyb?2:1);
+  if(total>4000){toast("범위가 너무 넓습니다("+total+"장) — 지도를 더 확대해 구역을 좁힌 뒤 받으세요");return;}
+  if(!confirm("현재 화면 구역의 위성지도 "+total+"장(약 "+Math.round(total*25/1024)+"MB)을 저장할까요?\n와이파이에서 받는 것을 권장합니다."))return;
+  _pfBusy=true;
+  var ok=0,fail=0,skip=0,idx=0,urls=[];
+  list.forEach(function(c){
+    urls.push(tileUrlFor(c[0],c[1],c[2],false));
+    if(wantHyb)urls.push(tileUrlFor(c[0],c[1],c[2],true));
+  });
+  var st=document.getElementById("tcState");
+  function fin(){
+    _pfBusy=false;
+    toast("지도 미리받기 완료 — 저장 "+ok+"장, 이미있음 "+skip+"장"+(fail?(", 실패 "+fail+"장"):""));
+    if(fail>ok&&fail>20)alert("저장 실패가 많습니다("+fail+"장).\n지도서버가 저장을 허용하지 않는 경우로,\n오프라인용 저장이 어려울 수 있습니다.");
+    tcRefreshState();
+  }
+  function next(){
+    if(idx>=urls.length)return fin();
+    var url=urls[idx++];
+    if(!url)return next();
+    tcGet(url,function(rec){
+      if(rec){skip++;if(st&&(skip+ok+fail)%40===0)st.textContent="미리받는 중… "+(skip+ok+fail)+"/"+urls.length;return next();}
+      fetch(url,{mode:"cors"}).then(function(r){return (r&&r.ok)?r.blob():null;})
+        .then(function(bl){if(bl&&bl.size>300){tcPut(url,bl);ok++;}else fail++;})
+        .catch(function(){fail++;})
+        .then(function(){
+          if(st&&(skip+ok+fail)%40===0)st.textContent="미리받는 중… "+(skip+ok+fail)+"/"+urls.length;
+          next();
+        });
+    });
+  }
+  var TH=6;
+  for(var k=0;k<TH;k++)next();
+}
+function tcRefreshState(){
+  var st=document.getElementById("tcState");
+  if(!st)return;
+  tcStats(function(n,sz){st.textContent=n?("저장된 지도 타일 "+n+"장 · 약 "+(sz/1048576).toFixed(1)+"MB"):"저장된 지도 없음";});
+}
+function tcClearUI(){
+  if(!confirm("저장된 오프라인 지도를 모두 지울까요?\n(조사 자료·사진과는 무관합니다)"))return;
+  tcClear(function(){toast("오프라인 지도 비움");tcRefreshState();});
+}
 /* ═══════════ 지도 ═══════════ */
 var map, layerSat=null, layerHyb=null, markers={}, lines=[], labelsOn=true;
 function baseLayers(){
@@ -664,14 +819,14 @@ function baseLayers(){
   if(layerHyb){map.removeLayer(layerHyb);layerHyb=null;}
   var key=vkey();
   if(key){
-    layerSat=L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+key+"/Satellite/{z}/{y}/{x}.jpeg",
+    layerSat=new CachedTile("https://api.vworld.kr/req/wmts/1.0.0/"+key+"/Satellite/{z}/{y}/{x}.jpeg",
       {maxNativeZoom:19,maxZoom:22,attribution:"VWorld"});
     if(settings.hybrid!=="무"){
-      layerHyb=L.tileLayer("https://api.vworld.kr/req/wmts/1.0.0/"+key+"/Hybrid/{z}/{y}/{x}.png",
+      layerHyb=new CachedTile("https://api.vworld.kr/req/wmts/1.0.0/"+key+"/Hybrid/{z}/{y}/{x}.png",
         {maxNativeZoom:19,maxZoom:22,opacity:.9});
     }
   }else{
-    layerSat=L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    layerSat=new CachedTile("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
       {maxNativeZoom:19,maxZoom:22,attribution:"Esri"});
   }
   layerSat.addTo(map);
@@ -694,6 +849,7 @@ function initMap(){
   map=L.map("map",{zoomControl:false,center:center,zoom:zoom,maxZoom:22,inertia:false});
   baseLayers();
   map.on("moveend",saveView);   // 마지막 화면 위치 기억 → 다음 실행 시 그 자리에서 시작
+  setTimeout(tcRefreshState,1500);   // v6.7
   map.on("move",updateCrossReadout);   // 십자선 모드일 때 좌표·축척 실시간 갱신
   map.on("click",function(e){
     if(crossMode)return;
@@ -779,6 +935,7 @@ function updateStat(byUp){
   var se=document.getElementById("stRw");
   if(se){se.style.display=rw>0?"":"none";se.textContent="역주행대기 "+rw;
          se.style.color="#FDE68A";se.style.fontWeight="bold";}
+  try{renderDraftBar();}catch(e){}   // v6.5: 지구 전환·저장 때마다 임시저장 띠 갱신
 }
 
 /* 역지오코딩: VWorld 키 있으면 점 좌표 → 주소 자동입력 */
@@ -877,18 +1034,31 @@ function nomSearch(q){
     .catch(function(){toast("검색 실패 — 지도를 직접 움직여 주세요");});
 }
 
-/* GPS */
-var gpsMk=null;
+/* GPS — v6.6: 탭=따라가기 켜기(파란 점 상시), 다시 탭=끄기 */
+var gpsMk=null,_locWatch=null,_locDot=null,_locFirst=true;
+function _locStop(){
+  if(_locWatch!==null){try{navigator.geolocation.clearWatch(_locWatch);}catch(e){}_locWatch=null;}
+  if(_locDot){try{map.removeLayer(_locDot);}catch(e){}_locDot=null;}
+  if(gpsMk){try{map.removeLayer(gpsMk);}catch(e){}gpsMk=null;}
+  var b=document.getElementById("btnGps");if(b){b.style.background="";b.style.color="";}
+}
 function gotoGps(){
   if(!navigator.geolocation){toast("이 환경에선 GPS를 쓸 수 없어요 — 지도를 움직여 지정하세요");return;}
-  toast("GPS 위치 찾는 중…");
-  navigator.geolocation.getCurrentPosition(function(p){
+  if(_locWatch!==null){_locStop();toast("내 위치 표시 끔");return;}
+  var b=document.getElementById("btnGps");if(b){b.style.background="#2563EB";b.style.color="#fff";}
+  _locFirst=true;
+  toast("GPS 위치 찾는 중… (다시 탭하면 끔)");
+  _locWatch=navigator.geolocation.watchPosition(function(p){
     var ll=[p.coords.latitude,p.coords.longitude];
-    map.setView(ll,19);
     if(gpsMk)map.removeLayer(gpsMk);
-    gpsMk=L.circle(ll,{radius:Math.max(p.coords.accuracy,5),color:"#3B82F6",weight:1,fillOpacity:.15}).addTo(map);
-    toast("현재 위치 (오차 약 "+Math.round(p.coords.accuracy)+"m) — 위성사진 보고 미세조정하세요");
-  },function(){toast("GPS 실패 — 지도를 움직여 십자선으로 지정하세요");},{enableHighAccuracy:true,timeout:8000});
+    gpsMk=L.circle(ll,{radius:Math.max(p.coords.accuracy,5),color:"#3B82F6",weight:1,fillOpacity:.12,interactive:false}).addTo(map);
+    if(!_locDot){
+      _locDot=L.circleMarker(ll,{radius:7,color:"#fff",weight:2.5,fillColor:"#2563EB",fillOpacity:1,interactive:false}).addTo(map);
+    }else _locDot.setLatLng(ll);
+    if(_locFirst){_locFirst=false;map.setView(ll,Math.max(map.getZoom(),18));
+      toast("내 위치 표시 중 (오차 약 "+Math.round(p.coords.accuracy)+"m) — 파란 점이 나, 점선 원이 다음 맨홀 예상 거리");}
+  },function(){_locStop();toast("GPS 실패 — 지도를 움직여 십자선으로 지정하세요");},
+  {enableHighAccuracy:true,timeout:15000,maximumAge:2000});
 }
 
 /* ═══════════ 십자선 추가 모드 ═══════════ */
@@ -1119,7 +1289,7 @@ function resetHereBtn(){
 }
 
 /* ═══════════ 폼 ═══════════ */
-var editingId=null, formPhotos=[], lastDefaults=null, pendingWhy="";
+var editingId=null, formPhotos=[], lastDefaults=null, pendingWhy="", _draftLoaded=false;
 function byId(id){for(var i=0;i<records.length;i++)if(records[i].id===id)return records[i];return null;}
 function mkButtons(elId,list,cur,onPick,warn){
   var el=document.getElementById(elId);el.innerHTML="";
@@ -1243,6 +1413,20 @@ function updDaySum(){
   });
   el.textContent="오늘: CCTV "+nC+"관로 · 현황 "+nS+"관로 | 도면합 "+sM.toFixed(0)+"m · 실측합 "+sP.toFixed(1)+"m · 주행합 "+sR.toFixed(1)+"m";
 }
+/* v6.8: 완주 시 정주행 연장 → 실연장 자동 복사 (실연장 공란일 때만, 수정 자유) */
+function autoPlen(){
+  try{
+    if(gval("g_cctvMode")!=="완주")return;
+    var f=document.getElementById("f_cctvF").value.trim().replace(/,/g,"");
+    var p=document.getElementById("f_plen");
+    if(!p||p.value.trim()!=="")return;
+    var n=parseFloat(f);
+    if(!(n>0))return;
+    p.value=f;
+    try{updPipeSum();}catch(e){}
+    toast("실연장에 "+f+"m 자동 입력됨 — 완주=촬영연장 (다르면 위 실연장 칸에서 수정)");
+  }catch(e){}
+}
 function updPipeSum(){
   var el=document.getElementById("pipeSum");
   if(!el)return;
@@ -1296,6 +1480,27 @@ function noteFix(cb){
       cb&&cb(_lastFix);
     },function(){cb&&cb(null);},{timeout:4000,maximumAge:60000,enableHighAccuracy:true});
   }catch(e){cb&&cb(null);}
+}
+/* v6.6: 하류번호 제안 — 상류번호 끝 숫자부 +1 (자릿수 유지) 을 1순위로 */
+function nextNumSuggest(up){
+  var m=String(up||"").match(/^(.*?)(\d+)([^\d]*)$/);
+  if(!m)return "";
+  var n=String(parseInt(m[2],10)+1);
+  while(n.length<m[2].length)n="0"+n;
+  return m[1]+n+m[3];
+}
+function fillDownOpts(r){
+  var dl=document.getElementById("downOpts");
+  if(!dl)return;
+  dl.innerHTML="";
+  var seen={};
+  var sg=nextNumSuggest(document.getElementById("f_up").value.trim());
+  if(sg){var o0=document.createElement("option");o0.value=sg;dl.appendChild(o0);seen[sg]=1;}
+  records.forEach(function(x){
+    if(x.up&&(!r||x.id!==r.id)&&!seen[x.up]){
+      var o=document.createElement("option");o.value=x.up;dl.appendChild(o);seen[x.up]=1;
+    }
+  });
 }
 function distM(a1,o1,a2,o2){
   var R=6371000,d2r=Math.PI/180;
@@ -1490,6 +1695,7 @@ function onCctvMode(v){
   if(v==="완주"){
     wF.style.display="";lblF.textContent="촬영한 길이(m) — 처음부터 끝까지";
     wR.style.display="none";wFw.style.display="none";wRw.style.display="none";
+    setTimeout(function(){try{autoPlen();}catch(e){}},0);   // v6.8
   }else if(v==="양쪽조사(정+역)"){
     wF.style.display="";lblF.textContent="정주행(상류→하류) 촬영 길이(m) — 막힌 곳까지";
     wR.style.display="";wFw.style.display="";wRw.style.display="";
@@ -1586,20 +1792,23 @@ function nearTooClose(latlng){
   });
   return (best&&bd<3)?{r:best,d:bd}:null;
 }
-function openForm(id,latlng){
+function openForm(id,latlng,draftR){
   editingId=id;formPhotos=[];
-  if(!id&&latlng){
+  if(!id&&latlng&&!draftR){
     var nc=nearTooClose(latlng);
     if(nc&&!confirm("⚠ 직전 등록 맨홀 "+nc.r.up+"와(과) "+nc.d.toFixed(1)+"m 거리입니다.\n지도를 안 움직인 것 아닌가요?\n\n[확인]=그래도 여기에 추가  [취소]=위치 다시 지정"))return;
   }
-  var r=id?byId(id):null;
+  var r=draftR||(id?byId(id):null);
+  var _isEdit=!!(id&&byId(id));   // v6.5: 임시저장 이어서도 신규/수정 모드 구분 유지
+  _draftLoaded=!!draftR;
   pendingWhy=(r&&r.stateWhy)||"";
   var d=r||lastDefaults||{};
-  document.getElementById("formTitle").innerHTML=r?("수정 — "+String(r.up||"").replace(/[<>&]/g,"")):
-    '맨홀 입력 <span style="font-size:11px;font-weight:normal;color:#9CA3AF">'+APP_VER+" · 미르이엔지 노영석 010-3725-4695</span>";
-  document.getElementById("btnDelete").style.display=r?"block":"none";
-  document.getElementById("btnCloseForm").textContent=r?"닫기":"✕ 취소 (지도로)";
-  document.getElementById("btnMove").style.display=r?"block":"none";
+  document.getElementById("formTitle").innerHTML=_isEdit?("수정 — "+String(r.up||"").replace(/[<>&]/g,"")):
+    (draftR?('임시저장 이어서 <span style="font-size:11px;font-weight:normal;color:#9CA3AF">'+APP_VER+"</span>"):
+    '맨홀 입력 <span style="font-size:11px;font-weight:normal;color:#9CA3AF">'+APP_VER+" · 미르이엔지 노영석 010-3725-4695</span>");
+  document.getElementById("btnDelete").style.display=_isEdit?"block":"none";
+  document.getElementById("btnCloseForm").textContent=_isEdit?"닫기":"✕ 취소 (지도로)";
+  document.getElementById("btnMove").style.display=_isEdit?"block":"none";
   var pipeSuggest="";
   if(!r&&records.length){
     var lastP=String(records[records.length-1].pipe||"");
@@ -1624,15 +1833,10 @@ function openForm(id,latlng){
     document.getElementById("f_up").style.background=cs.checked?"":"#FEF9C3";
   }
   document.getElementById("f_down").value=r?(r.down||""):"";
-  var dl=document.getElementById("downOpts");
-  if(dl){
-    dl.innerHTML="";
-    records.forEach(function(x){
-      if(x.up&&(!r||x.id!==r.id)){
-        var o=document.createElement("option");o.value=x.up;dl.appendChild(o);
-      }
-    });
-  }
+  fillDownOpts(r);
+  var _fd=document.getElementById("f_down");
+  if(_fd)_fd.onfocus=function(){fillDownOpts(editingId?byId(editingId):null);};   // v6.6: 상류 확정 후 +1 제안 갱신
+
   var dt0=(r&&r.downType)||"맨홀";
   mkButtons("g_downType",DOWN_TYPES,dt0,onDownType);
   onDownType(dt0);
@@ -1734,6 +1938,9 @@ function openForm(id,latlng){
     document.getElementById("formSheet").dataset.lat=latlng.lat;
     document.getElementById("formSheet").dataset.lng=latlng.lng;
     revGeocode(latlng.lat,latlng.lng);   // VWorld 키 있으면 주소 자동입력
+  }else if(_draftLoaded&&latlng&&isFinite(latlng.lat)){   // v6.5: 임시저장 당시 좌표 복원
+    document.getElementById("formSheet").dataset.lat=latlng.lat;
+    document.getElementById("formSheet").dataset.lng=latlng.lng;
   }
   renderPhotoSlots(r?r.photos:null);
   updDaySum();
@@ -1756,6 +1963,63 @@ function noteAdd(v,isItem){
     el.value=cur?(cur+"("+v+")"):v;
   }
   foldSummary();
+}
+/* ═══ v6.5: 임시저장 — 현장 상황으로 중단 시 입력값 보관·이어서 ═══ */
+function draftKey(){return nsKey("mh_draft");}
+function loadDraft(){try{return JSON.parse(localStorage.getItem(draftKey())||"null");}catch(e){return null;}}
+function renderDraftBar(){
+  var b=document.getElementById("draftBar");if(!b)return;
+  var dr=loadDraft();
+  if(dr){
+    document.getElementById("draftBarTxt").textContent="✏ 임시저장 이어서 입력 — "+(dr.pipe||dr.up||"(번호 미입력)")+(dr._t?(" · "+String(dr._t).slice(5,16).replace("T"," ")):"");
+    b.style.display="block";
+  }else b.style.display="none";
+}
+function discardDraft(){
+  var dr=loadDraft();
+  if(!dr)return;
+  if(!confirm("임시저장본을 삭제할까요? (되돌릴 수 없음)"))return;
+  try{   // 임시저장에만 쓰인 사진 정리 (기존 레코드가 쓰는 키는 보존)
+    (dr.photos||[]).forEach(function(k){
+      if(!k)return;
+      var used=records.some(function(r){return r&&(r.photos||[]).indexOf(k)>=0;});
+      if(!used){try{phDel(k);}catch(e){}}
+    });
+  }catch(e){}
+  localStorage.removeItem(draftKey());renderDraftBar();toast("임시저장본 삭제됨");
+}
+function resumeDraft(){
+  var dr=loadDraft();if(!dr){renderDraftBar();return;}
+  if(crossMode)endCross();
+  if(dr._editId&&byId(dr._editId)){openForm(dr._editId,null,dr);}
+  else{openForm(null,{lat:dr.lat,lng:dr.lng},dr);}
+}
+function saveDraft(){
+  function v(id){var e=document.getElementById(id);return e?String(e.value||"").trim():"";}
+  function rsv(g,e){var s=gval(g);if(s==="기타"){var x=v(e);return x||"기타";}return s;}
+  var dr={_t:new Date().toISOString(),_editId:editingId||""};
+  dr.pipe=v("f_pipe");dr.up=v("f_up");dr.down=v("f_down");dr.downType=gval("g_downType")||"맨홀";
+  dr.depth=v("f_depth");dr.pipeLen=v("f_plen");dr.mapLen=v("f_mlen");dr.addr=v("f_addr");dr.note=v("f_note");
+  dr.mhType=v("f_mhtype");dr.mhTypeEtc=v("f_mhtypeEtc");dr.mhSize=v("f_mhsize");
+  dr.state=gval("g_state");dr.stateWhy=rsv("g_stateWhy","f_stateWhyEtc");
+  dr.drain=v("f_drain");dr.pipeType=v("f_ptype");dr.pipeTypeEtc=v("f_ptypeEtc");
+  try{dr.pipeSize=curPsize();}catch(e){dr.pipeSize="";}
+  dr.cover=gval("g_cover");dr.coverEtc=v("f_coverEtc");
+  dr.mhCheck=gval("g_mhchk");dr.mhCheckEtc=v("f_mhchkEtc");
+  dr.boltType=gval("g_bolt");dr.boltEtc=v("f_boltEtc");dr.boltBad=v("f_boltBad");
+  dr.pressPipe=(document.getElementById("btnPress").dataset.on==="1")?"유":"무";
+  dr.invert=gval("g_invert");dr.ladder=gval("g_ladder");dr.fall=gval("g_fall");
+  dr.surveyType=gval("g_stype");dr.surveyWhy=rsv("g_svyWhy","f_svyEtc");
+  dr.cctvMode=gval("g_cctvMode");dr.cctvF=v("f_cctvF");dr.cctvR=v("f_cctvR");dr.cctvNote=v("f_cctvNote");
+  dr.cctvFw=rsv("g_cctvFw","f_cctvFwEtc");dr.cctvFwWhy=rsv("g_cctvFwWhy","f_cctvFwWhyEtc");
+  dr.cctvRw=rsv("g_cctvRw","f_cctvRwEtc");dr.cctvRwWhy=rsv("g_cctvRwWhy","f_cctvRwWhyEtc");
+  dr.photos=(formPhotos||[]).slice();
+  var sh=document.getElementById("formSheet");
+  dr.lat=parseFloat(sh.dataset.lat);dr.lng=parseFloat(sh.dataset.lng);
+  if(editingId){var r0=byId(editingId);if(r0){dr.lat=r0.lat;dr.lng=r0.lng;}}
+  try{localStorage.setItem(draftKey(),JSON.stringify(dr));}catch(e){toast("임시저장 실패("+e.name+") — 용량을 확인하세요");return;}
+  closeForm();renderDraftBar();
+  toast("임시저장됨 — 상단 주황 띠를 누르면 이어서 입력합니다");
 }
 function closeForm(){document.getElementById("formSheet").classList.remove("show");editingId=null;resetHereBtn();}
 function closeSheet(id){document.getElementById(id).classList.remove("show");}
@@ -2087,6 +2351,8 @@ function closeSaveReview(){document.getElementById("saveReview").style.display="
 function openSaveReview(html,commitFn){
   document.getElementById("saveReviewBody").innerHTML=html;
   document.getElementById("btnSaveConfirm").onclick=function(){closeSaveReview();commitFn();};
+  var bn=document.getElementById("btnSaveNext");   // v6.6: 저장 즉시 다음 맨홀 십자선(예측 가이드 포함)
+  if(bn)bn.onclick=function(){closeSaveReview();commitFn();try{startCross();}catch(e){}};
   document.getElementById("saveReview").style.display="flex";
 }
 function saveRecord(){
@@ -2225,13 +2491,18 @@ function saveRecord(){
   function num(x){var v=parseFloat(x);return isNaN(v)?0:v;}
   if(cm==="완주"){
     if(num(cF)<=0){toast("CCTV 완주: 조사 연장(m)을 입력하세요");return;}
+    if(pl>0&&Math.abs(num(cF)-pl)>0.05){   // v7.1: 완주 정의=촬영연장=실연장
+      if(!confirm("완주인데 촬영 "+num(cF).toFixed(1)+"m ≠ 실연장 "+pl.toFixed(1)+"m 입니다.\n완주는 촬영연장=실연장이어야 합니다 — 어느 쪽 값이 맞는지 확인하세요.\n\n이대로 저장할까요?"))return;
+    }
     cR="";cFw="";cRw="";
   }else if(cm==="양쪽조사(정+역)"){
     if(num(cF)<=0){toast("정주행 연장(중단 지점까지)을 입력하세요");return;}
     if(!cFw){toast("정주행 중단 사유를 선택하세요");return;}
     if(num(cR)<=0&&!cRw){toast("역주행 연장을 입력하거나, 역주행 못 한 사유를 선택하세요 (미완주 처리)");return;}
+    if(pl>0&&num(cF)>pl+0.05){toast("정주행 "+num(cF).toFixed(1)+"m > 실연장 "+pl.toFixed(1)+"m — 초과 오류, 연장 값을 확인하세요");return;}   // v7.0
     if(pl>0&&num(cR)>0){
       var _gap=pl-num(cF)-num(cR);
+      if(_gap<-0.05){toast("정+역 합 "+(num(cF)+num(cR)).toFixed(1)+"m > 실연장 "+pl.toFixed(1)+"m — 초과 오류, 연장 값을 확인하세요");return;}   // v7.0
       if(Math.abs(_gap)<=0.05){
         toast("정+역 합 = 실연장 → 완주 처리 (중단 사유는 기록하지 않습니다)");
         cRw="";cFw="";
@@ -2243,6 +2514,7 @@ function saveRecord(){
     if(!cFw){toast("정주행 불가 사유를 선택하세요");return;}
     if(num(cR)<=0){toast("역주행 연장(m)을 입력하세요");return;}
     cF="";
+    if(pl>0&&(num(cR)-pl)>0.05){toast("역주행 "+num(cR).toFixed(1)+"m > 실연장 "+pl.toFixed(1)+"m — 초과 오류, 연장 값을 확인하세요");return;}   // v7.0
     // v5.6: 역주행 전용도 관로 전체 기준 — 실연장에 못 미치면 사유 필요(방식② 공백 검사와 대칭)
     if(pl>0&&!cRw&&(pl-num(cR))>0.05){
       toast("역주행 "+num(cR).toFixed(1)+"m — 실연장 "+pl.toFixed(1)+"m에 "+(pl-num(cR)).toFixed(1)+"m 부족. 끝(상류)까지 갔으면 값 확인, 중간에 멈췄으면 [역주행을 못 했거나 멈춘 이유] 선택");
@@ -2282,6 +2554,8 @@ function saveRecord(){
   // v5.5: DB 필수 항목 — 비어 있으면 저장 차단
   if(state==="조사"&&!(dep>0))reqMiss.push("맨홀깊이(m) — 상태 '조사'는 깊이 필수");
   if(state!=="맨홀묻힘"&&state!=="확인불가"&&!gval("g_cover"))reqMiss.push("덮개 재질(CI·CS·AC 등)");
+  if(gval("g_cover")==="기타"&&!document.getElementById("f_coverEtc").value.trim())reqMiss.push("덮개 재질(기타 내용)");   // v7.1
+  if(document.getElementById("f_mhtype").value==="OC"&&!document.getElementById("f_mhtypeEtc").value.trim())reqMiss.push("맨홀종류(OC 기타 내용)");   // v7.1
   if(state==="조사"){
     if(!gval("g_invert"))reqMiss.push("인버트(유/무)");
     if(!gval("g_ladder"))reqMiss.push("사다리(유/무)");
@@ -2323,6 +2597,21 @@ function saveRecord(){
   if(reqMiss.length){
     alert("⚠ 저장할 수 없습니다 — 필수 입력이 비어 있습니다\n\n· "+reqMiss.join("\n· ")+"\n\n항목을 채운 뒤 다시 저장하세요.");
     return;
+  }
+  // v7.0: 상식 범위 확인 — 오타(cm 착각 등) 잡기, 특수한 실제 값은 확인 후 통과
+  if(dep>0&&(dep<0.2||dep>7)){
+    var _dm=(dep>=50)?("맨홀깊이 "+dep+" — cm로 적으신 것 아닌가요? m 단위입니다 (예: 2.35).\n\n이 값("+dep+"m)이 맞습니까?")
+                     :("맨홀깊이 "+dep+"m — 보통 범위(0.2~7m)를 벗어납니다.\n\n이 값이 맞습니까?");
+    if(!confirm(_dm))return;
+  }
+  if(pl>0&&(pl<1||pl>200)){
+    if(!confirm("실연장 "+pl+"m — 맨홀 간격의 보통 범위(1~200m)를 벗어납니다.\n\n이 값이 맞습니까?"))return;
+  }
+  if(psize&&String(psize).indexOf("*")<0){
+    var _pn=parseFloat(String(psize).replace(/,/g,""));
+    if(_pn>0&&(_pn<50||_pn>1500)){
+      if(!confirm("관경 "+psize+"mm — 원형관 보통 범위(50~1500mm)를 벗어납니다.\n\n이 값이 맞습니까?"))return;
+    }
   }
   if(mhchk&&mhchk!=="기타"){
     var expSt=(mhchk==="이상없음"||mhchk==="문제점 발견")?"조사":mhchk;
@@ -2386,6 +2675,7 @@ function saveRecord(){
   }
   r.photos=formPhotos.slice();
   var _commit=function(){
+  if(_draftLoaded){try{localStorage.removeItem(draftKey());}catch(e){}_draftLoaded=false;try{renderDraftBar();}catch(e){}}   // v6.5
   if(!r.worker)r.worker=localStorage.getItem("mh_worker")||"";
   if(!editingId)records.push(r);
   lastDefaults={drain:r.drain,cover:r.cover,mhType:r.mhType,mhSize:r.mhSize,
@@ -2479,9 +2769,31 @@ function filterList(){   // v5.7: 목록 검색 — 관로·상류·하류번호
     d.style.display=(!q||d.textContent.toLowerCase().indexOf(q)>=0)?"":"none";
   });
 }
+/* v6.9: 목록 중간점검 — 주행연장 표기·합계줄 */
+function runTxt(r){
+  var f=parseFloat(r.cctvF)||0, b=parseFloat(r.cctvR)||0;
+  if(f&&b)return "정"+f+"+역"+b+"m";
+  if(f)return f+"m";
+  if(b)return "역"+b+"m";
+  return "";
+}
+function sumLine(rs,label){
+  var n=0,sp=0,sr=0,nc=0,ns=0;
+  rs.forEach(function(r){
+    n++;sp+=parseFloat(r.pipeLen)||0;
+    sr+=(parseFloat(r.cctvF)||0)+(parseFloat(r.cctvR)||0);
+    if((r.surveyType||"")==="현황조사")ns++;else if((r.cctvMode||"미실시")!=="미실시")nc++;
+  });
+  return label+" "+n+"관로(CCTV "+nc+"·현황 "+ns+") · 실측합 "+sp.toFixed(1)+"m · 주행합 "+sr.toFixed(1)+"m";
+}
 function openList(){
   updateExpInfo();
   var body=document.getElementById("listBody");body.innerHTML="";
+  var _ls=document.getElementById("listSum");   // v6.9
+  if(_ls){
+    var _td=new Date().toISOString().slice(0,10);
+    _ls.innerHTML=sumLine(records,"전체")+"<br>"+sumLine(records.filter(function(r){return r.date===_td;}),"오늘");
+  }
   if(!records.length&&!refs.length)body.innerHTML='<div class="card">아직 등록된 항목이 없습니다.<br>지도에서 [＋]를 눌러 시작하세요.</div>';
   var byUp={};records.forEach(function(r){if(r.up)byUp[String(r.up)]=r;});
   records.slice().reverse().forEach(function(r){
@@ -2493,7 +2805,7 @@ function openList(){
       (r.ledger&&r.ledger!=="대장"?(' · <b style="color:'+(r.ledger==="멸실"?"#6B7280":"#059669")+'">['+r.ledger+']</b>'):'')+
       (r.cctvMode&&r.cctvMode!=="미실시"?(' · <b style="color:'+(r.cctv==="주행"?"#059669":"#DC2626")+'">CCTV '+r.cctvMode+(r.cctvFw?('('+r.cctvFw+')'):'')+'</b>')
         :((r.surveyType==="현황조사"&&r.surveyWhy)?(' · <b style="color:#6B7280">현황조사('+r.surveyWhy+')</b>'):''))+
-      ' · 깊이 '+(r.depth||"-")+' · '+
+      ' · 실 '+(r.pipeLen?(r.pipeLen+'m'):'-')+(runTxt(r)?(' · 주행 '+runTxt(r)):'')+' · 깊이 '+(r.depth||"-")+' · '+
       (missingReq(r)?('<span style="color:#DC2626;font-weight:bold">사진누락 '+missingLabel(r)+' ⚠</span>'):('사진 '+photosCount(r)+'장'))+
       (r.note?(' · '+r.note):'')+'</div></div>';
     var b1=document.createElement("button");b1.textContent="지도";
